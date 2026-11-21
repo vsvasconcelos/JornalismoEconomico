@@ -1,0 +1,2760 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="artifact-type" content="dashboard">
+  <meta name="design-style" content="briefing">
+  <title>Economia Brasileira & Comunicação de Dados — Mapa Mental Interativo</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+  <script src="https://unpkg.com/lucide@1.43.0/dist/umd/lucide.min.js"></script>
+
+  <style>
+    :root {
+      color-scheme: light;
+
+      /* Page and surfaces: warm stone-white paper (Briefing) */
+      --background: #faf9f5;
+      --surface-container-low: #ffffff;
+      --surface-container: #f1efe8;
+      --surface-container-high: #e6e2d6;
+
+      /* Ink */
+      --on-surface: #17181a;
+      --on-surface-variant: #56585c;
+
+      /* Rules */
+      --outline: #17181a;
+      --outline-variant: #dedad0;
+
+      /* Accents */
+      --primary: #17181a;
+      --on-primary: #faf9f5;
+      --primary-container: #f2b705;
+      --on-primary-container: #17181a;
+      --secondary: #1f4e5f;
+      --tertiary: #785008;
+      --error: #b42318;
+      --on-error: #ffffff;
+
+      /* Data series & 7 thematic pillars (all text-safe variants included) */
+      --data-1: #1f4e5f;       /* petrol slate */
+      --data-2: #d99000;       /* dossier gold */
+      --data-3: #2b6e52;       /* civic pine */
+      --data-4: #b84a39;       /* brick red */
+      --data-5: #4a3b7a;       /* editorial indigo */
+      --data-6: #1e4b7a;       /* deep cobalt */
+      --data-7: #6d4418;       /* warm umber */
+      --data-context: #c4bfb2; /* context lines */
+      --tag-bg-warm: #f5e6c4;  /* warm tag fill */
+      --btn-border: #c8c4b8;   /* secondary button border */
+
+      /* Fonts */
+      --font-headline: 'Source Serif 4', serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+      --font-label: 'Geist Mono', monospace;
+
+      /* Shape */
+      --rounded: 0.25rem;
+      --rounded-lg: 0.375rem;
+      --rounded-full: 0.25rem;
+
+      /* Style effects */
+      --section-rule: 1.5px solid var(--outline);
+      --card-border: 1px solid var(--outline-variant);
+      --badge-radius: 2px;
+      --heading-tracking: -0.02em;
+      --label-tracking: 0.08em;
+
+      /* Shared semantic & focus tokens */
+      --positive: #2b6e52;
+      --warning: #785008;
+      --focus: #1f4e5f;
+
+      /* Type scale: Dashboard / Data Explorer */
+      --display-size: clamp(1.75rem, 1.4rem + 1.2vw, 2.35rem);
+      --headline-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
+      --subhead-size: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+      --body-size: clamp(0.9375rem, 0.9rem + 0.15vw, 1rem);
+      --label-size: 0.75rem;
+
+      /* Spacing scale */
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2.5rem;
+      --space-2xl: 4rem;
+
+      /* Motion */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+      --dur-micro: 120ms;
+      --dur-short: 220ms;
+      --dur-long: 420ms;
+    }
+
+    /* Base reset */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      overflow-x: clip;
+      margin: 0;
+      padding: 0;
+      background-color: var(--background);
+      color: var(--on-surface);
+      font-family: var(--font-body);
+      font-size: var(--body-size);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    header { position: static !important; }
+
+    button, input, select {
+      font-family: inherit;
+    }
+
+    :focus-visible {
+      outline: 2.5px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .page-shell {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: var(--space-lg);
+      display: grid;
+      gap: var(--space-lg);
+    }
+    .page-shell * { min-width: 0; }
+
+    /* Briefing Dossier Header */
+    .dossier-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+      border-bottom: var(--section-rule);
+      padding-bottom: var(--space-sm);
+      margin-bottom: var(--space-md);
+    }
+    .dossier-bar-left {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    .dossier-pill {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      font-family: var(--font-body);
+      font-weight: 700;
+      font-size: 0.6875rem;
+      letter-spacing: var(--label-tracking);
+      text-transform: uppercase;
+      padding: 0.2rem 0.55rem;
+      border-radius: var(--badge-radius);
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+    .dossier-meta {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--on-surface-variant);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .title {
+      font-family: var(--font-headline);
+      font-weight: 700;
+      font-size: var(--display-size);
+      letter-spacing: var(--heading-tracking);
+      line-height: 1.1;
+      color: var(--on-surface);
+      margin: 0;
+    }
+    .standfirst {
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: var(--subhead-size);
+      color: var(--secondary);
+      margin: var(--space-sm) 0 0 0;
+      max-width: 78ch;
+      line-height: 1.45;
+    }
+
+    /* KPI Summary Strip */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+      gap: var(--space-md);
+    }
+    .figure-card {
+      background: var(--surface-container-low);
+      border: var(--card-border);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-md) var(--space-lg);
+      text-align: left;
+      cursor: pointer;
+      transition: background-color var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) var(--ease-out);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+    .figure-card:hover {
+      background: var(--surface-container);
+      box-shadow: 0 2px 8px rgba(23, 24, 26, 0.06);
+    }
+    .figure-card:active {
+      background: var(--surface-container-high);
+    }
+    .figure-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+    }
+    .index-num {
+      font-family: var(--font-label);
+      font-weight: 600;
+      font-size: var(--label-size);
+      color: var(--secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .figure-card .value {
+      font-family: var(--font-headline);
+      font-weight: 600;
+      font-size: clamp(1.35rem, 1.2rem + 0.5vw, 1.65rem);
+      font-variant-numeric: lining-nums tabular-nums;
+      color: var(--on-surface);
+      line-height: 1.15;
+    }
+    .figure-card .caption {
+      font-size: 0.84rem;
+      color: var(--on-surface-variant);
+      line-height: 1.4;
+    }
+
+    /* Controls Bar */
+    .controls-panel {
+      background: var(--surface-container-low);
+      border: var(--card-border);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-md) var(--space-lg);
+      display: grid;
+      gap: var(--space-md);
+    }
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: var(--space-md);
+    }
+    .control-field {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+      flex: 1 1 240px;
+    }
+    .control-field.compact {
+      flex: 0 1 230px;
+    }
+    .control-label {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--on-surface-variant);
+    }
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+    .text-input, .select-input {
+      height: 44px;
+      width: 100%;
+      padding: 0 var(--space-md);
+      background: var(--background);
+      border: 1px solid var(--btn-border);
+      border-radius: var(--rounded);
+      color: var(--on-surface);
+      font-size: 0.9375rem;
+      transition: background-color var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) var(--ease-out);
+    }
+    .select-input {
+      padding-right: var(--space-xl);
+      cursor: pointer;
+    }
+    .text-input:focus, .select-input:focus {
+      background: var(--surface-container-low);
+      box-shadow: 0 0 0 2px var(--secondary);
+      outline: none;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    .btn {
+      min-height: 44px;
+      padding: 0 0.875rem;
+      border-radius: var(--rounded);
+      font-weight: 600;
+      font-size: 0.875rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      cursor: pointer;
+      border: 1px solid var(--btn-border);
+      background: var(--surface-container-low);
+      color: var(--on-surface);
+      transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) var(--ease-out);
+      white-space: nowrap;
+    }
+    .btn:hover:not(:disabled) {
+      background: var(--surface-container);
+    }
+    .btn:active:not(:disabled) {
+      background: var(--surface-container-high);
+    }
+    .btn:disabled {
+      opacity: 0.48;
+      cursor: not-allowed;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: var(--on-primary);
+      border-color: var(--primary);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--secondary);
+      border-color: var(--secondary);
+    }
+    .btn-active {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      border-color: var(--outline);
+    }
+    .btn-active:hover:not(:disabled) {
+      background: var(--primary-container);
+      filter: brightness(0.96);
+    }
+    .btn-sm {
+      min-height: 36px;
+      padding: 0 0.65rem;
+      font-size: 0.8125rem;
+    }
+
+    /* Search match status bar */
+    .search-status {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+      padding: var(--space-xs) var(--space-sm);
+      background: var(--surface-container);
+      border-radius: var(--rounded);
+      font-size: 0.85rem;
+    }
+    .search-status[hidden] { display: none; }
+    .search-status-text {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--on-surface);
+    }
+
+    /* Pillar Filter Chips */
+    .chip-strip {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    .pillar-chip {
+      min-height: 38px;
+      padding: 0.35rem 0.75rem;
+      border-radius: var(--rounded);
+      border: 1px solid var(--outline-variant);
+      background: var(--background);
+      color: var(--on-surface);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      transition: background-color var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) var(--ease-out);
+    }
+    .pillar-chip:hover {
+      background: var(--surface-container);
+    }
+    .pillar-chip[aria-pressed="true"] {
+      background: var(--primary);
+      color: var(--on-primary);
+      border-color: var(--primary);
+    }
+    .chip-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* Main Split Workspace */
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.65fr) minmax(340px, 1fr);
+      gap: var(--space-lg);
+      align-items: stretch;
+    }
+    @media (max-width: 1080px) {
+      .workspace-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Mind Map Card */
+    .mindmap-card {
+      background: var(--surface-container-low);
+      border: var(--card-border);
+      border-radius: var(--rounded-lg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .mindmap-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+      padding: var(--space-sm) var(--space-md);
+      background: var(--surface-container);
+      border-bottom: var(--card-border);
+    }
+    .mindmap-hint {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--on-surface-variant);
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+    .zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+    .zoom-readout {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--on-surface);
+      min-width: 48px;
+      text-align: center;
+    }
+
+    #mindmap-container {
+      position: relative;
+      width: 100%;
+      min-height: 620px;
+      height: 68vh;
+      max-height: 780px;
+      background-color: var(--background);
+      background-image: radial-gradient(var(--outline-variant) 1px, transparent 1px);
+      background-size: 22px 22px;
+      cursor: grab;
+      user-select: none;
+    }
+    #mindmap-container:active {
+      cursor: grabbing;
+    }
+    #mindmap-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .mindmap-legend {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+      padding: var(--space-sm) var(--space-md);
+      background: var(--surface-container-low);
+      border-top: var(--card-border);
+      font-size: 0.8125rem;
+      color: var(--on-surface-variant);
+    }
+    .legend-items {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-md);
+    }
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .legend-line {
+      width: 22px;
+      height: 2px;
+      background: var(--secondary);
+      display: inline-block;
+    }
+    .legend-line-dashed {
+      width: 22px;
+      height: 0;
+      border-top: 2px dashed var(--tertiary);
+      display: inline-block;
+    }
+    .legend-badge {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1.5px solid var(--secondary);
+      background: var(--surface-container-low);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-label);
+      font-size: 0.6875rem;
+      font-weight: 700;
+      color: var(--secondary);
+    }
+
+    /* D3 SVG styling */
+    .tree-link {
+      fill: none;
+      stroke-width: 2px;
+      stroke-opacity: 0.65;
+      transition: stroke-opacity var(--dur-micro) var(--ease-out), stroke-width var(--dur-micro) var(--ease-out);
+    }
+    .tree-link.dimmed {
+      stroke-opacity: 0.14;
+    }
+    .tree-link.highlighted {
+      stroke-opacity: 1;
+      stroke-width: 3px;
+    }
+    .cross-link {
+      fill: none;
+      stroke: var(--tertiary);
+      stroke-width: 1.75px;
+      stroke-dasharray: 5 4;
+      stroke-opacity: 0.55;
+      pointer-events: none;
+    }
+    .cross-link.active {
+      stroke-opacity: 1;
+      stroke-width: 2.5px;
+      stroke: var(--primary);
+    }
+    .cross-link.dimmed {
+      stroke-opacity: 0.12;
+    }
+    .node-group {
+      cursor: pointer;
+    }
+    .node-card-bg {
+      transition: opacity var(--dur-micro) var(--ease-out), filter var(--dur-micro) var(--ease-out);
+    }
+    .node-group:hover .node-card-bg {
+      filter: drop-shadow(0 3px 8px rgba(23, 24, 26, 0.12));
+    }
+    .node-group.dimmed {
+      opacity: 0.25;
+    }
+    .node-toggle-btn {
+      cursor: pointer;
+    }
+    .node-toggle-btn:hover circle {
+      fill: var(--primary-container);
+    }
+
+    /* Inspector Panel */
+    .inspector-card {
+      background: var(--surface-container-low);
+      border: var(--card-border);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-lg);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+      max-height: 760px;
+      overflow-y: auto;
+    }
+    .inspector-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-xs);
+    }
+    .source-tag {
+      background: var(--tag-bg-warm);
+      color: var(--tertiary);
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      font-weight: 600;
+      padding: 0.2rem 0.5rem;
+      border-radius: var(--rounded);
+    }
+    .inspector-title {
+      font-family: var(--font-headline);
+      font-weight: 700;
+      font-size: var(--headline-size);
+      line-height: 1.18;
+      letter-spacing: var(--heading-tracking);
+      margin: 0;
+      color: var(--on-surface);
+    }
+    .inspector-subtitle {
+      font-weight: 600;
+      font-size: 0.9375rem;
+      color: var(--secondary);
+      margin: 0;
+    }
+    .inspector-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+    }
+    .inspector-summary {
+      margin: 0;
+      color: var(--on-surface);
+      line-height: 1.6;
+      max-width: 65ch;
+    }
+    .inspector-section-title {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: var(--label-tracking);
+      color: var(--on-surface-variant);
+      border-bottom: 1px solid var(--outline-variant);
+      padding-bottom: var(--space-xs);
+      margin: 0 0 var(--space-sm) 0;
+    }
+    .detail-list {
+      margin: 0;
+      padding-left: 1.15rem;
+      display: grid;
+      gap: var(--space-sm);
+      color: var(--on-surface);
+      font-size: 0.92rem;
+      line-height: 1.55;
+    }
+    .quote-box {
+      background: var(--surface-container);
+      border-left: 3px solid var(--secondary);
+      padding: var(--space-sm) var(--space-md);
+      border-radius: 0 var(--rounded) var(--rounded) 0;
+      font-family: var(--font-headline);
+      font-style: italic;
+      font-size: 0.98rem;
+      color: var(--on-surface);
+      line-height: 1.5;
+    }
+    .quote-author {
+      display: block;
+      margin-top: var(--space-xs);
+      font-family: var(--font-label);
+      font-style: normal;
+      font-size: var(--label-size);
+      color: var(--on-surface-variant);
+      text-transform: uppercase;
+    }
+
+    .chip-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-xs);
+    }
+    .jump-chip {
+      min-height: 36px;
+      padding: 0.25rem 0.65rem;
+      border-radius: var(--rounded);
+      border: 1px solid var(--outline-variant);
+      background: var(--background);
+      color: var(--secondary);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      text-align: left;
+      transition: background-color var(--dur-micro) var(--ease-out);
+    }
+    .jump-chip:hover {
+      background: var(--surface-container);
+    }
+    .jump-chip-cross {
+      color: var(--tertiary);
+      border-style: dashed;
+    }
+
+    /* Expandable Cards Index Section */
+    .cards-section {
+      display: grid;
+      gap: var(--space-md);
+    }
+    .section-header-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: var(--space-md);
+    }
+    .section-heading {
+      font-family: var(--font-headline);
+      font-weight: 700;
+      font-size: var(--headline-size);
+      letter-spacing: var(--heading-tracking);
+      margin: 0;
+      color: var(--on-surface);
+    }
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
+      gap: var(--space-md);
+      align-items: start;
+    }
+    .pillar-accordion {
+      background: var(--surface-container-low);
+      border: var(--card-border);
+      border-radius: var(--rounded-lg);
+      overflow: hidden;
+    }
+    .accordion-trigger {
+      width: 100%;
+      padding: var(--space-md) var(--space-lg);
+      background: var(--surface-container-low);
+      border: 0;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--space-md);
+      transition: background-color var(--dur-micro) var(--ease-out);
+    }
+    .accordion-trigger:hover {
+      background: var(--surface-container);
+    }
+    .accordion-title-wrap {
+      display: grid;
+      gap: var(--space-xs);
+    }
+    .accordion-title {
+      font-family: var(--font-headline);
+      font-weight: 700;
+      font-size: 1.125rem;
+      color: var(--on-surface);
+      line-height: 1.25;
+      margin: 0;
+    }
+    .accordion-meta {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--on-surface-variant);
+    }
+    .accordion-body {
+      padding: 0 var(--space-lg) var(--space-lg) var(--space-lg);
+      border-top: 1px solid var(--outline-variant);
+      display: grid;
+      gap: var(--space-md);
+    }
+    .accordion-body[hidden] {
+      display: none;
+    }
+    .subnode-card {
+      padding-top: var(--space-md);
+      border-top: 1px dashed var(--outline-variant);
+      display: grid;
+      gap: var(--space-xs);
+    }
+    .subnode-card:first-child {
+      border-top: 0;
+    }
+    .subnode-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-xs);
+    }
+    .subnode-title {
+      font-weight: 700;
+      font-size: 0.96rem;
+      color: var(--on-surface);
+      margin: 0;
+    }
+    .subnode-summary {
+      margin: 0;
+      font-size: 0.89rem;
+      color: var(--on-surface-variant);
+      line-height: 1.5;
+    }
+
+    /* Empty state */
+    .empty-state {
+      background: var(--surface-container);
+      border: var(--card-border);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-xl);
+      text-align: center;
+      display: grid;
+      gap: var(--space-sm);
+      justify-items: center;
+    }
+
+    /* Sources Aside Footer */
+    .aside-box {
+      background: var(--surface-container);
+      border-top: var(--section-rule);
+      padding: var(--space-lg);
+      border-radius: 0 0 var(--rounded-lg) var(--rounded-lg);
+      display: grid;
+      gap: var(--space-sm);
+    }
+    .sources-list {
+      margin: 0;
+      padding-left: 1.2rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+      gap: var(--space-xs) var(--space-lg);
+      font-size: 0.875rem;
+      color: var(--on-surface-variant);
+    }
+
+    @media (max-width: 640px) {
+      .page-shell {
+        padding: var(--space-md);
+      }
+      #mindmap-container {
+        min-height: 460px;
+        height: 55vh;
+      }
+      .inspector-card {
+        max-height: none;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <!-- Masthead Header -->
+    <header>
+      <div class="dossier-bar">
+        <div class="dossier-bar-left">
+          <span class="dossier-pill">Dossiê Interativo</span>
+          <span class="dossier-meta">07 eixos temáticos · 35 nós conectáveis · 06 fontes primárias</span>
+        </div>
+        <span class="dossier-meta">Mapa Mental D3.js · Brasil no Longo Prazo</span>
+      </div>
+      <h1 class="title">Trajetória da Economia Brasileira e Comunicação de Dados</h1>
+      <p class="standfirst">
+        Navegue pelas conexões entre a armadilha da renda média, a estabilização do Plano Real, o desempenho do PIB, a desigualdade de renda, o isolamento comercial, o tripé macroeconômico e as práticas de jornalismo econômico.
+      </p>
+    </header>
+
+    <!-- Headline KPI Cards (click to focus node) -->
+    <section class="kpi-grid" aria-label="Indicadores-chave do caderno">
+      <button type="button" class="figure-card" onclick="focusNodeFromUI('crescimento-quebras')">
+        <div class="figure-card-top">
+          <span class="index-num">05 · Quebras estruturais</span>
+          <span class="source-tag">FGV IBRE</span>
+        </div>
+        <div class="value">3,9% → 0,7% a.a.</div>
+        <div class="caption">Crescimento anual do PIB per capita de 1918–1980 ante a estagnação de 1980–2021.</div>
+      </button>
+
+      <button type="button" class="figure-card" onclick="focusNodeFromUI('plano-real-numeros')">
+        <div class="figure-card-top">
+          <span class="index-num">02 · Estabilização</span>
+          <span class="source-tag">Plano Real</span>
+        </div>
+        <div class="value">4.922% → 1,6%</div>
+        <div class="caption">Inflação acumulada em 12 meses até jun/1994 comparada ao IPCA fechado de 1998.</div>
+      </button>
+
+      <button type="button" class="figure-card" onclick="focusNodeFromUI('pib-coreia')">
+        <div class="figure-card-top">
+          <span class="index-num">03 · Divergência PPC</span>
+          <span class="source-tag">1980–2023</span>
+        </div>
+        <div class="value">US$ 21 mil × 60 mil</div>
+        <div class="caption">PIB per capita por paridade de poder de compra: Brasil vs. Coreia do Sul em 2023.</div>
+      </button>
+
+      <button type="button" class="figure-card" onclick="focusNodeFromUI('fiscal-diagnostico')">
+        <div class="figure-card-top">
+          <span class="index-num">04 & 06 · Equilíbrio</span>
+          <span class="source-tag">Gini & Dívida</span>
+        </div>
+        <div class="value">0,50 Gini · 84% PIB</div>
+        <div class="caption">Desigualdade persistente na PNAD e projeção de dívida pública bruta para 2026.</div>
+      </button>
+    </section>
+
+    <!-- Interactive Controls -->
+    <section class="controls-panel" aria-label="Controles de busca, filtro e navegação do mapa">
+      <div class="controls-row">
+        <div class="control-field">
+          <label class="control-label" for="search-input">Buscar conceito, dado, autor ou termo</label>
+          <div class="search-box">
+            <input id="search-input" class="text-input" type="search" placeholder="Ex.: Coreia, Gini, URV, Focus, economês, 84%…" oninput="handleSearchInput(this.value)">
+          </div>
+        </div>
+
+        <div class="control-field compact">
+          <label class="control-label" for="source-filter">Filtrar por fonte do caderno</label>
+          <select id="source-filter" class="select-input" onchange="handleSourceFilter(this.value)">
+            <option value="all">Todas as fontes (06)</option>
+            <option value="fgv">FGV Blog do IBRE (Samuel Pessoa)</option>
+            <option value="franco">Entrevista Gustavo Franco</option>
+            <option value="malan">Entrevista Pedro Malan</option>
+            <option value="ribeiro">Entrevista Alessandra Ribeiro</option>
+            <option value="modulos">Módulos do Curso (Juliana Rosa)</option>
+          </select>
+        </div>
+
+        <div class="btn-group">
+          <button type="button" class="btn" id="btn-expand-all" onclick="expandAllNodes()">
+            <i data-lucide="unfold-vertical" width="16" height="16" aria-hidden="true"></i>
+            Expandir tudo
+          </button>
+          <button type="button" class="btn" id="btn-collapse-all" onclick="collapseAllNodes()">
+            <i data-lucide="fold-vertical" width="16" height="16" aria-hidden="true"></i>
+            Recolher ramos
+          </button>
+          <button type="button" class="btn btn-active" id="btn-cross-links" aria-pressed="true" onclick="toggleCrossLinks()">
+            <i data-lucide="git-compare" width="16" height="16" aria-hidden="true"></i>
+            Conexões cruzadas
+          </button>
+          <button type="button" class="btn" id="btn-layout-mode" onclick="toggleLayoutMode()">
+            <i data-lucide="network" width="16" height="16" aria-hidden="true"></i>
+            Layout: Bilateral
+          </button>
+          <button type="button" class="btn" onclick="resetDraggedPositions()">
+            <i data-lucide="rotate-ccw" width="16" height="16" aria-hidden="true"></i>
+            Reorganizar nós
+          </button>
+        </div>
+      </div>
+
+      <!-- Search Feedback Banner -->
+      <div class="search-status" id="search-status" hidden>
+        <span class="search-status-text" id="search-status-text">0 resultados</span>
+        <div class="btn-group">
+          <button type="button" class="btn btn-sm" onclick="stepSearchMatch(-1)">Anterior</button>
+          <button type="button" class="btn btn-sm" onclick="stepSearchMatch(1)">Próximo resultado</button>
+          <button type="button" class="btn btn-sm" onclick="clearSearchAndFilters()">Limpar busca</button>
+        </div>
+      </div>
+
+      <!-- Pillar Filter Chips -->
+      <div class="chip-strip" role="group" aria-label="Filtrar ou focar eixo temático" id="pillar-chips"></div>
+    </section>
+
+    <!-- Main Split Workspace: D3 Mind Map + Node Inspector -->
+    <main class="workspace-grid">
+      <!-- D3 Canvas -->
+      <section class="mindmap-card" aria-label="Mapa mental interativo">
+        <div class="mindmap-header">
+          <span class="mindmap-hint">
+            <i data-lucide="move" width="15" height="15" aria-hidden="true"></i>
+            Arraste qualquer nó ou o fundo · Clique no card para ler detalhes · Use + / − para expandir
+          </span>
+          <div class="zoom-controls">
+            <button type="button" class="btn btn-sm" aria-label="Diminuir zoom" onclick="zoomBy(0.8)">−</button>
+            <span class="zoom-readout" id="zoom-readout">100%</span>
+            <button type="button" class="btn btn-sm" aria-label="Aumentar zoom" onclick="zoomBy(1.25)">+</button>
+            <button type="button" class="btn btn-sm btn-primary" onclick="fitMindMap()">Ajustar à tela</button>
+          </div>
+        </div>
+
+        <div id="mindmap-container">
+          <svg id="mindmap-svg" role="img" aria-label="Mapa mental dinâmico conectando os 7 eixos sobre a economia brasileira e jornalismo econômico"></svg>
+        </div>
+
+        <div class="mindmap-legend">
+          <div class="legend-items">
+            <span class="legend-item"><span class="legend-line"></span> Hierarquia do eixo</span>
+            <span class="legend-item"><span class="legend-line-dashed"></span> Conexão entre fontes</span>
+            <span class="legend-item"><span class="legend-badge">+</span> Expandir / recolher ramo</span>
+          </div>
+          <span id="visible-nodes-count" class="dossier-meta">Exibindo nós</span>
+        </div>
+      </section>
+
+      <!-- Node Detail Inspector -->
+      <aside class="inspector-card" id="inspector-panel" aria-live="polite" aria-label="Detalhes do nó selecionado">
+        <!-- Populated dynamically by JS -->
+      </aside>
+    </main>
+
+    <!-- Structured Accordion Cards for Deep Reading -->
+    <section class="cards-section" aria-label="Índice analítico dos 7 eixos em cards expansíveis">
+      <div class="dossier-bar">
+        <div class="dossier-bar-left">
+          <span class="dossier-pill">Índice Analítico</span>
+          <span class="dossier-meta">Cards expansíveis sincronizados com busca e filtros</span>
+        </div>
+        <div class="btn-group">
+          <button type="button" class="btn btn-sm" onclick="toggleAllAccordions(true)">Abrir todos os cards</button>
+          <button type="button" class="btn btn-sm" onclick="toggleAllAccordions(false)">Fechar cards</button>
+        </div>
+      </div>
+
+      <div class="cards-grid" id="cards-grid"></div>
+      <div class="empty-state" id="cards-empty" hidden>
+        <p class="inspector-title">Nenhum nó corresponde aos filtros atuais</p>
+        <p class="inspector-summary">Nenhum eixo ou subtópico combinou com a busca e a fonte selecionadas. Limpe os filtros para visualizar todos os 35 nós do caderno.</p>
+        <button type="button" class="btn btn-primary" onclick="clearSearchAndFilters()">Restaurar todos os eixos</button>
+      </div>
+    </section>
+
+    <!-- Sources Footer -->
+    <footer class="aside-box">
+      <div class="inspector-meta-row">
+        <span class="index-num">Fontes integradas neste mapa mental</span>
+        <span class="dossier-meta">Síntese fiel ao material do caderno</span>
+      </div>
+      <ol class="sources-list">
+        <li><strong>FGV Blog do IBRE — Samuel Pessoa</strong>: “Brasil no longo prazo” (Coluna Ponto de Vista, Conjuntura Econômica, mai. 2022; dados IpeaData, Thomas Kang, Paul Krugman, Johnson &amp; Noguera, Findlay &amp; O’Rourke).</li>
+        <li><strong>Curso de Jornalismo Econômico — Juliana Rosa</strong>: Módulo 1 (“A armadilha da renda média”, “Inflação”, “O PIB brasileiro” e “A distribuição da riqueza no Brasil”; dados IBGE, PNAD Contínua, FMI, Banco Mundial, Marcos Mendes, Marcelo Neri, José Márcio Camargo).</li>
+        <li><strong>Entrevista com Alessandra Ribeiro (Tendências Consultoria)</strong>: Tripé macroeconômico, metas de inflação (3%), Pesquisa Focus, diagnóstico fiscal (84% do PIB em 2026) e agenda de reformas.</li>
+        <li><strong>Entrevista com Gustavo Franco (Band Jornalismo)</strong>: Livro <em>30 Anos do Real: Crônicas no Calor do Momento</em>, hiperinflação, autonomia do Banco Central, Copom e orçamento público.</li>
+        <li><strong>Entrevista com Pedro Malan (Band Jornalismo)</strong>: Estabilização como condição necessária, pacto político do Real, rigidez orçamentária, educação na primeira infância, envelhecimento populacional e incertezas institucionais.</li>
+      </ol>
+    </footer>
+  </div>
+
+  <script>
+    // Read theme colors dynamically from CSS :root tokens (zero inline hex in JS/HTML)
+    function getRootToken(name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
+    const THEME = {
+      bg: getRootToken('--background'),
+      card: getRootToken('--surface-container-low'),
+      surface: getRootToken('--surface-container'),
+      ink: getRootToken('--on-surface'),
+      muted: getRootToken('--on-surface-variant'),
+      border: getRootToken('--outline-variant'),
+      primary: getRootToken('--primary'),
+      onPrimary: getRootToken('--on-primary'),
+      gold: getRootToken('--primary-container'),
+      secondary: getRootToken('--secondary'),
+      tertiary: getRootToken('--tertiary'),
+      pillars: {
+        '01': getRootToken('--data-4'),
+        '02': getRootToken('--tertiary'),
+        '03': getRootToken('--data-1'),
+        '04': getRootToken('--data-3'),
+        '05': getRootToken('--data-5'),
+        '06': getRootToken('--data-6'),
+        '07': getRootToken('--data-7')
+      },
+      pillarBorders: {
+        '01': getRootToken('--data-4'),
+        '02': getRootToken('--data-2'),
+        '03': getRootToken('--data-1'),
+        '04': getRootToken('--data-3'),
+        '05': getRootToken('--data-5'),
+        '06': getRootToken('--data-6'),
+        '07': getRootToken('--data-7')
+      }
+    };
+
+    // Complete Mind Map Data Grounded in All Notebook Sources
+    const MIND_MAP_DATA = {
+      id: `root`,
+      code: `SÍNTESE`,
+      pillar: `00`,
+      side: `center`,
+      sourceKey: `all`,
+      sourceLabel: `Todas as 6 fontes do caderno`,
+      title: `Economia Brasileira & Comunicação de Dados`,
+      shortTitle: `Economia Brasileira & Comunicação`,
+      metric: `07 Eixos · 35 Nós`,
+      summary: `Síntese navegável de como o Brasil venceu a hiperinflação com o Plano Real, mas ficou preso na armadilha da renda média após 1980 — e de como traduzir esses conceitos e números com rigor jornalístico para fortalecer a cidadania.`,
+      details: [
+        `De 1918 a 1980, o PIB per capita cresceu 3,9% ao ano com urbanização e industrialização; entre 1980 e 2021, desacelerou para 0,7% ao ano.`,
+        `O Plano Real (1994) derrotou a hiperinflação de quase 10.000% ao ano e consolidou câmbio flutuante e metas de inflação, mas o país não completou a agenda fiscal e de abertura comercial.`,
+        `Sem produtividade, educação básica e inserção nas cadeias globais de valor, o Brasil permanece uma economia de renda média e altíssima desigualdade (Gini ~0,50).`,
+        `A comunicação econômica clara — livre do economês e precisa na distinção entre % e ponto percentual — é ponte indispensável entre dados e democracia.`
+      ],
+      quote: `A estabilidade da inflação não é um fim em si mesma, mas uma condição indispensável para que crescimento sustentado e melhoria das condições sociais sejam alcançados.`,
+      quoteAuthor: `Pedro Malan · Ex-ministro da Fazenda`,
+      children: [
+        // 01: Armadilha da Renda Média
+        {
+          id: `eixo-01`,
+          code: `01`,
+          pillar: `01`,
+          side: `right`,
+          sourceKey: `modulos`,
+          sourceLabel: `Módulo 1 · Armadilha da Renda Média`,
+          title: `Armadilha da Renda Média & Substituição de Importações`,
+          shortTitle: `01 · Armadilha da Renda Média`,
+          metric: `1940–1992 · Modelo fechado`,
+          summary: `Explica como o Brasil atingiu patamar de renda intermediária com industrialização protegida, mas não conseguiu avançar ao nível dos países ricos após o choque externo dos anos 1970.`,
+          details: [
+            `A armadilha da renda média ocorre quando um país sai da pobreza, alcança renda intermediária, mas perde fôlego para alcançar economias de alta renda.`,
+            `Entre as décadas de 1940 e 1970, o Brasil respondeu às restrições pós-1929 criando barreiras a importações e colocando o Estado como indutor do crescimento.`,
+            `O modelo gerou infraestrutura e grandes estatais, mas manteve proteção permanente e financiamento via dívida externa em dólar.`
+          ],
+          quote: `O Brasil é o único país onde a indústria nascente tem 60 anos.`,
+          quoteAuthor: `Marcos Lisboa (citado por Juliana Rosa)`,
+          children: [
+            {
+              id: `renda-media-substituicao`,
+              code: `01.1`,
+              pillar: `01`,
+              sourceKey: `modulos`,
+              sourceLabel: `Módulo 1 · Armadilha da Renda Média`,
+              title: `Do ciclo do café à substituição de importações (1940–1979)`,
+              shortTitle: `Substituição de importações (1940–79)`,
+              metric: `Pós-1929 · Barreiras tarifárias`,
+              summary: `Após a crise de 1929 fechar o comércio mundial e expor a dependência do café, o país passou a produzir internamente bens de consumo antes importados.`,
+              details: [
+                `No início do século XX, o Brasil exportava produtos primários (café) e importava manufaturados, vivendo ciclos de euforia e depressão.`,
+                `A partir dos anos 1940, foram criadas barreiras a eletrodomésticos e eletrônicos importados, estimulando fábricas locais.`,
+                `O modelo foi mantido por quase quatro décadas como estratégia central de desenvolvimento industrial.`
+              ]
+            },
+            {
+              id: `renda-media-infraestrutura`,
+              code: `01.2`,
+              pillar: `01`,
+              sourceKey: `modulos`,
+              sourceLabel: `Módulo 1 · Armadilha da Renda Média`,
+              title: `Salto em infraestrutura, estatais e multinacionais`,
+              shortTitle: `Estatais, infraestrutura e indústria`,
+              metric: `CSN · Petrobras · Itaipu`,
+              summary: `O Estado liderou investimentos pesados em energia, portos, saneamento e rodovias, atraindo montadoras e indústrias estrangeiras para o mercado interno.`,
+              details: [
+                `Pedro Malan relembra que, antes desse ciclo, havia apenas 4 ou 5 estradas interestaduais asfaltadas no país; o restante era terra e paralelepípedo.`,
+                `Foram criadas grandes estatais como Companhia Siderúrgica Nacional (CSN), Petrobras e a usina hidrelétrica de Itaipu.`,
+                `Multinacionais como Volkswagen e General Electric se instalaram no Brasil mirando um mercado consumidor interno protegido.`
+              ]
+            },
+            {
+              id: `renda-media-petroleo`,
+              code: `01.3`,
+              pillar: `01`,
+              sourceKey: `modulos`,
+              sourceLabel: `Módulo 1 · Armadilha da Renda Média`,
+              title: `Choques do petróleo, II PND e crise da dívida externa`,
+              shortTitle: `Choques do petróleo e II PND`,
+              metric: `Barril: US$ 2,90 → US$ 38 · Juros EUA 20%`,
+              summary: `Com juros internacionais baixos, governo e empresas se endividaram em dólar; as crises de 1973 e 1978 tornaram a dívida impagável e quebraram o país.`,
+              details: [
+                `O barril de petróleo saltou de US$ 2,90 antes de 1973 para US$ 38 após 1978; os EUA elevaram os juros a 20% ao ano para conter a inflação global.`,
+                `Em vez de ajustar a economia, o governo Geisel dobrou a aposta com o II Plano Nacional de Desenvolvimento (II PND), ampliando a dívida externa.`,
+                `A crise da dívida externa só foi renegociada em 1992, com Pedro Malan conduzindo o acordo junto a credores internacionais.`
+              ],
+              quote: `A inflação aleija, mas o câmbio mata. O Brasil tentou enfiar um pé 40 num sapato 38.`,
+              quoteAuthor: `Mário Henrique Simonsen / Luiz Otávio Leal`
+            },
+            {
+              id: `renda-media-protecao`,
+              code: `01.4`,
+              pillar: `01`,
+              sourceKey: `modulos`,
+              sourceLabel: `Módulo 1 · Armadilha da Renda Média`,
+              title: `Proteção permanente vs. abertura gradual asiática`,
+              shortTitle: `Proteção permanente vs. Ásia`,
+              metric: `Lei de Informática (anos 1990)`,
+              summary: `Enquanto Coreia do Sul, Taiwan e China usaram proteção temporária e depois se abriram ao comércio mundial, o Brasil permaneceu fechado e distante da fronteira tecnológica.`,
+              details: [
+                `Ainda na década de 1990 era difícil importar computadores ou peças de injeção eletrônica para automóveis devido à Lei de Informática.`,
+                `Sem competição internacional, o parque industrial brasileiro ficou limitado, com baixa produtividade e atraso tecnológico.`,
+                `A substituição de importações deveria ter sido transitória, preparando empresas locais para competir globalmente.`
+              ]
+            }
+          ]
+        },
+
+        // 02: Inflação, Hiperinflação & Plano Real
+        {
+          id: `eixo-02`,
+          code: `02`,
+          pillar: `02`,
+          side: `right`,
+          sourceKey: `franco`,
+          sourceLabel: `Módulo 1 · Entrevistas Franco & Malan`,
+          title: `Inflação, Hiperinflação & Plano Real`,
+          shortTitle: `02 · Inflação & Plano Real`,
+          metric: `1994 · Divisor de águas`,
+          summary: `Da corrida nos supermercados com preços remarcados diariamente à engenharia da URV e do Real em 1994 — e os ensinamentos de Gustavo Franco e Pedro Malan 30 anos depois.`,
+          details: [
+            `O Brasil foi recordista mundial de inflação por três décadas (início dos anos 1960 ao início dos anos 1990).`,
+            `O Plano Real quebrou a inércia hiperinflacionária sem congelamentos fracassados, preservando o poder de compra dos salários.`,
+            `A vitória sobre a hiperinflação tornou-se um pacto social que o eleitorado brasileiro não aceita perder.`
+          ],
+          quote: `Sair do vício da inflação não significa estar apto a disputar medalha olímpica imediatamente: primeiro recupera-se a saúde; depois vêm dieta e treinamento.`,
+          quoteAuthor: `Gustavo Franco · Ex-presidente do BC`,
+          children: [
+            {
+              id: `hiperinflacao-mecanica`,
+              code: `02.1`,
+              pillar: `02`,
+              sourceKey: `modulos`,
+              sourceLabel: `Módulo 1 · Inflação`,
+              title: `Anatomia da hiperinflação e imposto sobre os mais pobres`,
+              shortTitle: `Anatomia da hiperinflação`,
+              metric: `47% ao mês em jun/1994`,
+              summary: `A hiperinflação desorganizou os preços relativos, destruiu a renda de quem não tinha proteção financeira e sustentou bancos e empresas dependentes do "floating".`,
+              details: [
+                `Antes do Real, muitas empresas e bancos ganhavam aplicando dinheiro à vista no overnight e pagando fornecedores a prazo; vários quebraram quando a inflação caiu.`,
+                `Em Brasília existia a ilusão de que a inflação financiava gastos e ajudava o crescimento; na prática, funcionava como um imposto regressivo sobre o dinheiro vivo no bolso do pobre.`,
+                `A memória familiar das compras rápidas no supermercado — fugindo da maquininha de remarcação — mantém viva a rejeição social à inflação.`
+              ],
+              quote: `A inflação é a forma mais injusta de concentração de renda, além de desorganizar toda a atividade econômica.`,
+              quoteAuthor: `Luiz Roberto Cunha · Ex-reitor da PUC-Rio`
+            },
+            {
+              id: `plano-real-numeros`,
+              code: `02.2`,
+              pillar: `02`,
+              sourceKey: `franco`,
+              sourceLabel: `Entrevista Gustavo Franco & Módulo 1`,
+              title: `Da URV ao Real: queda de 10.000% a.a. para 1,6% em 1998`,
+              shortTitle: `Números do Plano Real (1994–98)`,
+              metric: `4.922% → 1,6% a.a.`,
+              summary: `Em apenas 30 meses após o lançamento do Real, a inflação anual despencou de quatro dígitos para menos de 10% ao ano, consolidando nova moeda e estabilidade.`,
+              details: [
+                `Junho de 1994 (último mês do Cruzeiro Real / URV): variação mensal de ~46%–47% (equivalente a quase 10.000% ao ano anualizados; 4.922% em 12 meses).`,
+                `Julho de 1994 (1º mês do Real): IPCA caiu para 6,7%–6,8% (~120% anualizado); agosto de 1994 fechou em 2%.`,
+                `Primeiros 12 meses do Real (jul/1995): 33% no IPCA; início de 1997 (30 meses): abaixo de 10% a.a.; em 1998: 1,6% no ano inteiro.`
+              ]
+            },
+            {
+              id: `boa-ma-inflacao`,
+              code: `02.3`,
+              pillar: `02`,
+              sourceKey: `modulos`,
+              sourceLabel: `Módulo 1 · Inflação`,
+              title: `Boa inflação, má inflação e armadilha da deflação`,
+              shortTitle: `Boa inflação vs. deflação`,
+              metric: `Óleo da economia vs. paralisia`,
+              summary: `Nem zero inflação nem queda contínua de preços são desejáveis: um pouco de inflação previsível lubrifica a economia, enquanto a deflação congela consumo e investimento.`,
+              details: [
+                `Inflação boa: baixa e previsível; funciona como "óleo da economia", sinalizando demanda saudável e segurança para contratos de longo prazo.`,
+                `Inflação ruim: alta e imprevisível; impede saber o que é caro ou barato, corrói reajustes salariais (ex.: salário sobe 5% e inflação vai a 10%) e freia contratações.`,
+                `Deflação: queda persistente de preços; consumidores e empresas adiam compras e investimentos esperando preços ainda menores (caso do Japão por uma década).`
+              ]
+            },
+            {
+              id: `franco-autonomia`,
+              code: `02.4`,
+              pillar: `02`,
+              sourceKey: `franco`,
+              sourceLabel: `Entrevista Gustavo Franco (Band Jornalismo)`,
+              title: `Gustavo Franco: Copom, autonomia do BC e ortodoxia`,
+              shortTitle: `Franco: Autonomia do BC e Copom`,
+              metric: `Mandatos não coincidentes`,
+              summary: `Para proteger a moeda de excessos políticos, o Brasil esvaziou o Conselho Monetário Nacional (CMN), empoderou o Copom e instituiu autonomia técnica ao Banco Central.`,
+              details: [
+                `O Copom reúne 9 especialistas em sessões a cada 45 dias; o placar e a ata sinalizam expectativas, mas sua missão legal é única: estabilidade do poder de compra da moeda.`,
+                `A primeira transição com mandatos não coincidentes (Roberto Campos Neto enfrentando críticas de Bolsonaro e depois de Lula) testou e validou a autonomia técnica.`,
+                `Franco alerta que o orçamento ainda é opaco (lei de 1964, emendas) e defende reduzir despesas em vez de elevar impostos ou dívida, seguindo "medicina convencional" em vez de heterodoxias.`
+              ]
+            },
+            {
+              id: `malan-longo-prazo`,
+              code: `02.5`,
+              pillar: `02`,
+              sourceKey: `malan`,
+              sourceLabel: `Entrevista Pedro Malan (Band Jornalismo)`,
+              title: `Pedro Malan: pacto político, investimento e demografia`,
+              shortTitle: `Malan: Pacto, investimento e idade`,
+              metric: `Investimento 16,8% · Discricionárias <9%`,
+              summary: `Malan lembra que o Real exigiu liderança política capaz de unir equipe técnica após 10 anos de debate — e aponta os entraves fiscais, educacionais e demográficos atuais.`,
+              details: [
+                `Liderança de Itamar Franco e FHC reuniu Pérsio Arida, André Lara Resende, Edmar Bacha, Gustavo Franco e Murilo Portugal; a transição FHC → Lula 1 preservou o rumo macroeconômico.`,
+                `Despesas obrigatórias comprimem as discricionárias a menos de 9% do orçamento (com R$ 600 bi em subsídios tributários), derrubando a taxa de investimento para 16,8% do PIB (abaixo dos 20%+ da América Latina).`,
+                `A população brasileira estabilizará em 2040–2041 e depois encolherá: será preciso nova reforma da Previdência nos anos 2030 e prioridade à educação na primeira infância ("sinapses nos anos iniciais").`
+              ]
+            }
+          ]
+        },
+
+        // 03: Dinâmica do PIB, Coreia do Sul & Gargalos
+        {
+          id: `eixo-03`,
+          code: `03`,
+          pillar: `03`,
+          side: `right`,
+          sourceKey: `modulos`,
+          sourceLabel: `Módulo 1 · O PIB Brasileiro`,
+          title: `Dinâmica do PIB, Coreia do Sul & Gargalos Estruturais`,
+          shortTitle: `03 · PIB, Coreia & Gargalos`,
+          metric: `8ª economia · Voo de galinha`,
+          summary: `Analisa por que o PIB brasileiro oscila como um "eletrocardiograma", como se divide entre serviços, indústria e agro, e por que a Coreia do Sul triplicou nossa renda per capita.`,
+          details: [
+            `Desde os anos 1980, o crescimento brasileiro alterna pequenos surtos e quedas bruscas ("voo de galinha").`,
+            `Embora seja a 8ª maior economia do mundo pelo FMI em 2026 (10ª em recortes anteriores), o PIB dividido pela população revela um país de renda média.`,
+            `Superar a estagnação exige destravar 7 gargalos estruturais ligados à produtividade e ao ambiente de negócios.`
+          ],
+          children: [
+            {
+              id: `pib-setores`,
+              code: `03.1`,
+              pillar: `03`,
+              sourceKey: `modulos`,
+              sourceLabel: `Módulo 1 · O PIB Brasileiro`,
+              title: `Composição setorial e ritmo trimestral do PIB`,
+              shortTitle: `Serviços 70% · Indústria 25% · Agro 7%`,
+              metric: `Serviços ~70% do PIB`,
+              summary: `O PIB soma bens e serviços finais produzidos em um ano. No Brasil, o setor de serviços domina a produção, enquanto a comparação trimestre contra trimestre mostra a temperatura imediata da atividade.`,
+              details: [
+                `Setores produtivos: Serviços (~70%, de saúde e restaurantes a tecnologia e limpeza), Indústria (~25%) e Agropecuária (~7%).`,
+                `Componentes da demanda: consumo das famílias, consumo do governo, investimentos ("formação bruta de capital fixo"), exportações e importações.`,
+                `Em 2026, os dados trimestrais mostraram perda de fôlego: alta de 1% no 1º trimestre seguida de desaceleração para 0,5% no 2º trimestre.`
+              ]
+            },
+            {
+              id: `pib-per-capita`,
+              code: `03.2`,
+              pillar: `03`,
+              sourceKey: `modulos`,
+              sourceLabel: `Módulo 1 · O PIB Brasileiro`,
+              title: `PIB total vs. PIB per capita por Paridade de Poder de Compra (PPC)`,
+              shortTitle: `PIB per capita em PPC`,
+              metric: `Brasil US$ 21 mil (2023)`,
+              summary: `O PIB per capita mede a fatia teórica do bolo por habitante; ajustado pela Paridade do Poder de Compra (PPC), corrige diferenças de custo de vida para comparações internacionais justas.`,
+              details: [
+                `Um país com PIB total gigante pode ter renda média modesta por ter população numerosa — e ainda assim concentrar essa riqueza em poucos.`,
+                `O ajuste por PPC considera quanto custam alimentos, combustíveis e impostos em cada país.`,
+                `Em 2023 (PPC), o Brasil atingiu US$ 21 mil por habitante — abaixo de vizinhos como México (US$ 24 mil) e Chile (mais de US$ 32 mil).`
+              ]
+            },
+            {
+              id: `pib-coreia`,
+              code: `03.3`,
+              pillar: `03`,
+              sourceKey: `modulos`,
+              sourceLabel: `Módulo 1 · O PIB Brasileiro`,
+              title: `Divergência Brasil vs. Coreia do Sul e o fator mercado interno`,
+              shortTitle: `Brasil × Coreia do Sul (1980–2023)`,
+              metric: `Coreia: US$ 2,2 mil → US$ 60 mil`,
+              summary: `Em 1980, a Coreia do Sul era mais pobre que o Brasil; em 2023, tornou-se quase três vezes mais rica ao investir pesadamente em educação, indústria competitiva e abertura comercial.`,
+              details: [
+                `Em 1980, o PIB per capita (PPC) do Brasil era US$ 4,4 mil e o da Coreia do Sul era US$ 2,2 mil. Em 2023: Brasil US$ 21 mil contra US$ 60 mil da Coreia.`,
+                `Economias pequenas como Singapura e Coreia têm mercado interno limitado, o que as obrigou a competir globalmente e priorizar educação e infraestrutura.`,
+                `Países com grande mercado consumidor (como o Brasil) cederam à tentação da reserva de mercado com tarifas altas, deixando a agenda de produtividade em segundo plano.`
+              ]
+            },
+            {
+              id: `pib-gargalos`,
+              code: `03.4`,
+              pillar: `03`,
+              sourceKey: `modulos`,
+              sourceLabel: `Módulo 1 · O PIB Brasileiro`,
+              title: `Os 7 gargalos estruturais que travam o crescimento`,
+              shortTitle: `7 gargalos estruturais`,
+              metric: `Produtividade & risco Brasil`,
+              summary: `A ausência de uma agenda contínua pós-estabilização manteve sete entraves interligados que reduzem o PIB potencial brasileiro.`,
+              details: [
+                `1) Desequilíbrio das contas públicas; 2) Juros estruturalmente altos; 3) Sistema tributário pesado e complexo.`,
+                `4) Baixa abertura comercial; 5) Infraestrutura precária; 6) Insegurança jurídica; 7) Baixa qualidade da educação.`,
+                `Como resumem os criadores do Real, sem enfrentar esses gargalos, a economia recupera a saúde monetária mas não vira atleta de alto rendimento.`
+              ]
+            }
+          ]
+        },
+
+        // 05: Cadeias Globais de Valor (FGV Blog do IBRE)
+        {
+          id: `eixo-05`,
+          code: `05`,
+          pillar: `05`,
+          side: `right`,
+          sourceKey: `fgv`,
+          sourceLabel: `FGV Blog do IBRE · Samuel Pessoa`,
+          title: `Cadeias Globais de Valor no Longo Prazo`,
+          shortTitle: `05 · Cadeias Globais (FGV IBRE)`,
+          metric: `1900–2021 · Escala Log Base 2`,
+          summary: `Análise histórica de Samuel Pessoa sobre as duas quebras estruturais da economia brasileira (1918 e 1980) e nossa incapacidade de nos integrar ao comércio global fatiado a partir dos anos 1990.`,
+          details: [
+            `Série histórica do IpeaData em escala logarítmica base 2 (R$ de 2010) revela duas quebras estatísticas (Thomas Kang): 1918 e 1980.`,
+            `Enquanto a globalização se acelerou nos anos 1990 com a fragmentação produtiva, o Brasil seguiu produzindo para o mercado doméstico atrás de altas tarifas.`,
+            `A estagnação pós-1980 combina crise da dívida, queda do investimento público (série desde 1947 do Observatório de Política Fiscal do Ibre) e isolamento comercial.`
+          ],
+          quote: `Quando resolvemos os problemas com nossas contas externas e estabilizamos a economia após o Plano Real, não conseguimos encontrar um lugar na economia global.`,
+          quoteAuthor: `Samuel Pessoa · FGV Blog do IBRE`,
+          children: [
+            {
+              id: `crescimento-quebras`,
+              code: `05.1`,
+              pillar: `05`,
+              sourceKey: `fgv`,
+              sourceLabel: `FGV Blog do IBRE · Samuel Pessoa`,
+              title: `As duas quebras estruturais: 1918 (3,9%) e 1980 (0,7%)`,
+              shortTitle: `Quebras de 1918 e 1980`,
+              metric: `62 anos a 3,9% vs. 41 anos a 0,7%`,
+              summary: `Entre 1918 e 1980, o produto per capita cresceu 3,9% ao ano graças à transição demográfica, urbanização, industrialização e fechamento do comércio mundial; pós-1980, despencou para 0,7% ao ano.`,
+              details: [
+                `Fatores domésticos (1918–1980): urbanização acelerada, industrialização e bônus demográfico impulsionaram a renda per capita.`,
+                `Quebra de 1980: deflagrada pela crise da dívida externa, seguida pela realocação do gasto público para políticas sociais na redemocratização — reduzindo fortemente o investimento público (Observatório Fiscal do Ibre, série desde 1947).`,
+                `Entre 1980 e 2021, o crescimento médio per capita de 0,7% ao ano manteve o Brasil estagnado frente a economias dinâmicas.`
+              ]
+            },
+            {
+              id: `pax-britannica`,
+              code: `05.2`,
+              pillar: `05`,
+              sourceKey: `fgv`,
+              sourceLabel: `FGV Blog do IBRE · Samuel Pessoa`,
+              title: `Da Pax Britannica (1820–1914) à retomada do comércio em 1972`,
+              shortTitle: `Pax Britannica & seis décadas fechadas`,
+              metric: `1913 → 1972 (60 anos)`,
+              summary: `A primeira grande globalização (navio a vapor, casco de metal, telégrafo e capital inglês em ferrovias) acabou na 1ª Guerra; o comércio mundial levou seis décadas para voltar aos níveis de 1913.`,
+              details: [
+                `A 1ª globalização ganhou força após as guerras napoleônicas (1820), o fim das leis dos grãos na Inglaterra (1840) e inovações de transporte/comunicação.`,
+                `Após 1914, vieram a Grande Depressão, a 2ª Guerra Mundial e lenta reabertura — o comércio global só igualou o patamar de 1913 em 1972 (Findlay & O'Rourke).`,
+                `Esse mundo ainda relativamente fechado no pós-guerra permitiu que multinacionais investissem no Brasil apenas para abastecer o mercado interno.`
+              ]
+            },
+            {
+              id: `krugman-va`,
+              code: `05.3`,
+              pillar: `05`,
+              sourceKey: `fgv`,
+              sourceLabel: `FGV Blog do IBRE · Samuel Pessoa`,
+              title: `Fatiamento produtivo (Krugman) e queda do Valor Adicionado (VA)`,
+              shortTitle: `Cadeias fatiadas e Valor Adicionado`,
+              metric: `VA exportações: 87% → 75%`,
+              summary: `A globalização recente quebrou a produção em etapas geograficamente separadas, reduzindo a parcela de valor adicionado doméstico dentro das exportações brutas.`,
+              details: [
+                `Paul Krugman (1995) apontou 4 novidades: intracomércio (bens similares entre países similares), fatiamento da cadeia de valor, supercomerciadores (alto comércio/PIB) e exportação de manufaturas de países de baixo para alto salário.`,
+                `Robert Johnson e Guillermo Noguera (2017) mostraram que o Valor Adicionado (VA) das exportações totais caiu de 87% (1970) para ~85% (1995) e pouco mais de 75% (2008) — queda > 10 pontos percentuais.`,
+                `Nas exportações de manufaturados, o recuo do VA doméstico como proporção das exportações brutas foi de aproximadamente 20 pontos percentuais.`
+              ]
+            },
+            {
+              id: `entrincheiramento`,
+              code: `05.4`,
+              pillar: `05`,
+              sourceKey: `fgv`,
+              sourceLabel: `FGV Blog do IBRE · Samuel Pessoa`,
+              title: `Entrincheiramento tarifário e isolamento pós-Plano Real`,
+              shortTitle: `Barreiras tarifárias pós-1994`,
+              metric: `Alta proteção · Baixa integração`,
+              summary: `A partir de meados dos anos 1990, quando as cadeias globais de valor se aceleraram, o Brasil manteve altas barreiras tarifárias e não tarifárias e ficou de fora das redes produtivas globais.`,
+              details: [
+                `Com empresas importando partes e componentes para exportar bens finais competitivos, exigir alto conteúdo local isolou a indústria brasileira.`,
+                `Mesmo após equilibrar contas externas e estabilizar a moeda com o Plano Real, o país insistiu em produzir domesticamente apenas para o mercado doméstico.`,
+                `A conclusão de Samuel Pessoa é direta: esse modelo fechado pós-anos 1990 não tem funcionado.`
+              ]
+            }
+          ]
+        },
+
+        // 04: Distribuição da Riqueza, Gini & Programas Sociais
+        {
+          id: `eixo-04`,
+          code: `04`,
+          pillar: `04`,
+          side: `left`,
+          sourceKey: `modulos`,
+          sourceLabel: `Módulo 1 · Distribuição da Riqueza`,
+          title: `Distribuição da Riqueza, Gini & Programas Sociais`,
+          shortTitle: `04 · Desigualdade & Gini`,
+          metric: `Gini ~0,50 · 20% ricos = 56% renda`,
+          summary: `Mostra por que o Brasil é um dos países mais desiguais do mundo: diferenças abissais de produtividade e educação no mercado de trabalho, informalidade e o papel complementar do Bolsa Família.`,
+          details: [
+            `A desigualdade caiu nos últimos anos com expansão do emprego e do Bolsa Família, mas segue em patamar similar ao de países africanos.`,
+            `Países muito desiguais crescem menos (Marcos Mendes, "Por que o Brasil cresce pouco").`,
+            `Redução sustentada da pobreza exige crescimento forte e geração de empregos formais — como no Sudeste Asiático, onde mais de 1 bilhão de pessoas saíram da pobreza em duas décadas.`
+          ],
+          children: [
+            {
+              id: `gini-retrato`,
+              code: `04.1`,
+              pillar: `04`,
+              sourceKey: `modulos`,
+              sourceLabel: `Módulo 1 · Distribuição da Riqueza`,
+              title: `Índice de Gini (~0,50) e retrato da concentração na PNAD`,
+              shortTitle: `Índice de Gini e concentração`,
+              metric: `26× (10% ricos / 10% pobres)`,
+              summary: `O Índice de Gini (0 = igualdade plena, 1 = desigualdade máxima) está em torno de 0,50 no Brasil — menor nível desde 2012, porém com enorme concentração no topo.`,
+              details: [
+                `PNAD Contínua (IBGE, 2025): rendimento médio mensal real domiciliar per capita de R$ 2.264, mas metade da população vive abaixo desse valor.`,
+                `Os 10% mais ricos têm renda média quase 26 vezes maior do que a dos 10% mais pobres.`,
+                `Estudo "Pobreza e Desigualdade" (Banco Mundial): os 20% mais ricos concentram 56% da renda total, enquanto os 20% mais pobres ficam com apenas 4%; desigualdades raciais e de gênero perpetuam a exclusão.`
+              ]
+            },
+            {
+              id: `abismo-salarial`,
+              code: `04.2`,
+              pillar: `04`,
+              sourceKey: `modulos`,
+              sourceLabel: `Módulo 1 · Distribuição da Riqueza`,
+              title: `Abismo salarial e educacional: engenheiro vs. carpinteiro`,
+              shortTitle: `Abismo salarial (7× vs. 2×)`,
+              metric: `Engenheiro 7× carpinteiro`,
+              summary: `A causa imediata da desigualdade brasileira está na distância salarial entre profissões qualificadas e manuais, reflexo direto da disparidade educacional desde a infância.`,
+              details: [
+                `Segundo Marcos Mendes, um engenheiro no Brasil ganha 7 vezes mais que um carpinteiro — contra 2,1 vezes no Reino Unido e menos de 2 vezes nos Estados Unidos.`,
+                `Profissionais de alta renda frequentaram boas escolas, universidades públicas com alto investimento estatal e empresas organizadas, atingindo padrão de vida de país rico.`,
+                `Trabalhadores de baixa renda tiveram ensino fundamental precário e atuam em atividades informais ou empresas pouco produtivas.`
+              ]
+            },
+            {
+              id: `ich-informalidade`,
+              code: `04.3`,
+              pillar: `04`,
+              sourceKey: `modulos`,
+              sourceLabel: `Módulo 1 · Distribuição da Riqueza`,
+              title: `Índice de Capital Humano (55%) e custos da informalidade`,
+              shortTitle: `Capital Humano (55%) & Informalidade`,
+              metric: `55% do potencial produtivo`,
+              summary: `O Banco Mundial estima que crianças nascidas no Brasil atingem apenas 55% do seu potencial produtivo por falta de acesso pleno à saúde e educação, agravado por encargos que empurram trabalhadores à informalidade.`,
+              details: [
+                `Índice de Capital Humano (ICH): perda de 45% do potencial produtivo futuro por deficiências na formação básica e saúde.`,
+                `Legislação tributária e trabalhista onerosa torna caro formalizar empregos, mantendo alta informalidade.`,
+                `José Márcio Camargo aponta que a reforma trabalhista de 2017 ajudou a ampliar a formalização ao permitir a terceirização de todas as atividades, elevando a produtividade.`
+              ]
+            },
+            {
+              id: `bolsa-familia-ia`,
+              code: `04.4`,
+              pillar: `04`,
+              sourceKey: `modulos`,
+              sourceLabel: `Módulo 1 · Distribuição da Riqueza`,
+              title: `Bolsa Família, geração de emprego e impacto da IA`,
+              shortTitle: `Bolsa Família, empregos e IA`,
+              metric: `Multiplicador no PIB · Apps & IA`,
+              summary: `Transferências de renda como o Bolsa Família reduzem a pobreza infantil e irrigam o PIB, mas não substituem o crescimento econômico gerador de empregos nem a adaptação à economia digital.`,
+              details: [
+                `Marcelo Neri (FGV Social) destaca o efeito multiplicador de cada real investido no Bolsa Família retornando ao PIB e seu impacto sobre a pobreza infantil — com necessidade de aprimorar eficiência do gasto.`,
+                `Banco Mundial ("Panorama Econômico da América Latina e Caribe — aproveitar a transição da IA", out. 2026): plataformas de entrega e transporte geraram renda e reduziram desemprego estrutural, mas exigem proteção previdenciária e trabalhista (férias, licença).`,
+                `Experiência do Sudeste Asiático comprova que o Estado sozinho não sustenta a qualidade de vida sem crescimento vigoroso e empregos produtivos.`
+              ]
+            }
+          ]
+        },
+
+        // 06: Tripé Macroeconômico & Diagnóstico Fiscal (Alessandra Ribeiro)
+        {
+          id: `eixo-06`,
+          code: `06`,
+          pillar: `06`,
+          side: `left`,
+          sourceKey: `ribeiro`,
+          sourceLabel: `Entrevista Alessandra Ribeiro · Tendências`,
+          title: `Tripé Macroeconômico, Metas de Inflação & Diagnóstico Fiscal`,
+          shortTitle: `06 · Tripé & Diagnóstico Fiscal`,
+          metric: `Meta 3% · Dívida 84% PIB`,
+          summary: `Diagnóstico de Alessandra Ribeiro (Tendências Consultoria) sobre a sustentação do Real via tripé macroeconômico, o papel das expectativas (Focus) e o "tripé meio troncho" pela questão fiscal crônica.`,
+          details: [
+            `A partir do fim dos anos 1990, três reformas pavimentaram o crescimento dos anos 2000: metas de inflação, Lei de Responsabilidade Fiscal e câmbio flutuante.`,
+            `Hoje o Brasil não vive uma crise fiscal aguda, mas um problema crônico: mesmo crescendo ~2,7% na média de 4 anos, não gera superávit primário.`,
+            `O país tem potencial (agronegócio, mineração, Margem Equatorial, estabilidade geopolítica), mas precisa parar de "reinventar a roda" e executar a agenda conhecida.`
+          ],
+          quote: `Não estamos em crise fiscal aguda, mas é um problema crônico e sério: mesmo crescendo em média 2,7%, o Brasil não consegue gerar resultado primário.`,
+          quoteAuthor: `Alessandra Ribeiro · Sócia da Tendências Consultoria`,
+          children: [
+            {
+              id: `tripe-pilares`,
+              code: `06.1`,
+              pillar: `06`,
+              sourceKey: `ribeiro`,
+              sourceLabel: `Entrevista Alessandra Ribeiro`,
+              title: `Os três pilares do tripé econômico pós-Plano Real`,
+              shortTitle: `Metas, LRF e Câmbio Flutuante`,
+              metric: `3 pernas da estabilidade`,
+              summary: `Para impedir a volta da hiperinflação após o câmbio fixo inicial do Real, o Brasil estruturou um tripé institucional interdependente.`,
+              details: [
+                `1) Sistema de metas de inflação: Banco Central calibra a taxa de juros (Selic) para fazer a inflação convergir ao centro da meta.`,
+                `2) Responsabilidade fiscal (LRF): contas públicas sustentáveis evitam que déficits descontrolados pressionem a demanda e a inflação.`,
+                `3) Câmbio flutuante: cotação do dólar definida por fluxos de mercado (entradas e saídas), absorvendo choques sem queimar reservas.`
+              ]
+            },
+            {
+              id: `focus-meta3`,
+              code: `06.2`,
+              pillar: `06`,
+              sourceKey: `ribeiro`,
+              sourceLabel: `Entrevista Alessandra Ribeiro & Pedro Malan`,
+              title: `Expectativas, Pesquisa Focus e a meta de 3%`,
+              shortTitle: `Focus, expectativas e meta 3%`,
+              metric: `+150 instituições · Meta 3%`,
+              summary: `A Pesquisa Focus consolida projeções de mais de 150 instituições; quando expectativas desancoram, empresários remarcam preços preventivamente, encarecendo o trabalho do BC.`,
+              details: [
+                `Não há "complô" do mercado: mais de 150 bancos e consultorias calculam e enviam projeções semanais (mediana de mercado).`,
+                `Se o pequeno empresário vê a expectativa subir de 3% para 5%, remarca a 6%–10% por precaução — expectativa vira repasse de preço, exigindo juros mais altos e até recessão para reancorar.`,
+                `A meta de 3% alinha o Brasil a emergentes estáveis (vs. 2% em EUA e Zona do Euro); elevá-la daria sinal de complacência (como no passado com o uso do teto da banda).`
+              ]
+            },
+            {
+              id: `fiscal-diagnostico`,
+              code: `06.3`,
+              pillar: `06`,
+              sourceKey: `ribeiro`,
+              sourceLabel: `Entrevista Alessandra Ribeiro`,
+              title: `Diagnóstico fiscal: dívida em 84% do PIB e risco de espiral`,
+              shortTitle: `Dívida 84% PIB e custo dos juros`,
+              metric: `84% vs. 60% média emergentes`,
+              summary: `A dívida bruta projetada para 2026 atinge 84% do PIB — mais de 20 pontos percentuais acima da média dos emergentes — com juros altos e prazo médio de vencimento curto.`,
+              details: [
+                `Sem superávit primário (arrecadação menos despesas antes dos juros), cresce a percepção de risco e piora o custo de rolagem da dívida.`,
+                `Embora EUA (~120% do PIB) e Japão (~200%) tenham dívidas maiores, o Brasil paga juros muito mais elevados e tem prazo menor de refinanciamento.`,
+                `Qualquer choque (pandemia ou evento climático grave) com dívida alta e juros de ~10,5%–14% pode disparar uma espiral negativa.`
+              ]
+            },
+            {
+              id: `agenda-futuro`,
+              code: `06.4`,
+              pillar: `06`,
+              sourceKey: `ribeiro`,
+              sourceLabel: `Entrevista Alessandra Ribeiro`,
+              title: `Agenda de destravamento: fiscal, qualificação e reforma tributária`,
+              shortTitle: `Agenda para destravar o potencial`,
+              metric: `Educação · Segurança · Tributária`,
+              summary: `Para transformar vantagens naturais (agro, mineração, petróleo na Margem Equatorial) em crescimento inclusivo, é preciso manter rumo e previsibilidade.`,
+              details: [
+                `O equilíbrio fiscal funciona como o grande "guarda-chuva" para reduzir juros estruturais e destravar investimento privado.`,
+                `Qualificação de mão de obra e educação elevam a produtividade nos setores de serviços e indústria.`,
+                `Segurança jurídica no ambiente de negócios e implementação da reforma tributária (apesar da transição dura) reduzem o custo Brasil.`
+              ]
+            }
+          ]
+        },
+
+        // 07: Práticas de Jornalismo e Comunicação de Dados
+        {
+          id: `eixo-07`,
+          code: `07`,
+          pillar: `07`,
+          side: `left`,
+          sourceKey: `modulos`,
+          sourceLabel: `Curso de Jornalismo Econômico · Juliana Rosa`,
+          title: `Jornalismo Econômico & Comunicação de Dados`,
+          shortTitle: `07 · Jornalismo & Dados`,
+          metric: `Traduzir · Precisão · Humanizar`,
+          summary: `Diretrizes práticas ensinadas por Juliana Rosa (e reforçadas por Alessandra Ribeiro) para traduzir a economia sem jargões, garantindo precisão numérica e fortalecendo a democracia.`,
+          details: [
+            `A economia não pode parecer distante ou incompreensível: quando o cidadão entende inflação, juros e orçamento, toma melhores decisões financeiras e políticas.`,
+            `O papel do jornalismo econômico é construir a ponte entre academia, dados oficiais, formuladores de políticas e sociedade civil.`,
+            `Boas reportagens combinam rigor conceitual (% vs. p.p.), concretude em reais e histórias humanas.`
+          ],
+          quote: `Não falem economês, falem português. Jornalista não tem que saber qual é a resposta; ele tem que saber qual é a pergunta.`,
+          quoteAuthor: `Juliana Rosa · Curso de Jornalismo Econômico`,
+          children: [
+            {
+              id: `traducao-economes`,
+              code: `07.1`,
+              pillar: `07`,
+              sourceKey: `modulos`,
+              sourceLabel: `Módulos 1 · PIB & Inflação`,
+              title: `Traduzindo o "economês" das divulgações do IBGE`,
+              shortTitle: `Tradução do economês (IBGE)`,
+              metric: `FBCF → Investimentos`,
+              summary: `Termos técnicos dos relatórios oficiais afastam o leitor comum e devem ser substituídos por expressões diretas do cotidiano.`,
+              details: [
+                `No PIB: troque "formação bruta de capital fixo" por "investimentos" (máquinas, obras, ampliação de fábricas); evite "ótica da produção" ou "ótica da despesa".`,
+                `No IPCA: em vez de dizer apenas "subiu o item habitação", explique que pesou a "conta de luz"; traduza "artigos de residência" como "eletrodomésticos, TV e som".`,
+                `Não tenha vergonha de pedir ao especialista que traduza o conceito até ficar cristalino para quem não é da área.`
+              ]
+            },
+            {
+              id: `precisao-conceitos`,
+              code: `07.2`,
+              pillar: `07`,
+              sourceKey: `modulos`,
+              sourceLabel: `Módulos 1 · Inflação, PIB & Renda`,
+              title: `Precisão técnica: por cento (%) vs. ponto percentual (p.p.) e prazos`,
+              shortTitle: `Precisão: % vs. ponto percentual`,
+              metric: `14% → 13,75% = −0,25 p.p.`,
+              summary: `Confundir porcentagem com ponto percentual ou interpretar variações mensais isoladas distorce a leitura econômica.`,
+              details: [
+                `Se a taxa Selic cai de 14% para 13,75%, caiu 0,25 ponto percentual (não 0,25%). Se um índice sobe de 10 para 20, avançou 10 pontos percentuais (ou 100%).`,
+                `No IPCA, olhe sempre o acumulado no ano e em 12 meses, além do resultado do mês (que pode sofrer choques pontuais como quebra de safra).`,
+                `No PIB trimestral, a comparação com o trimestre imediatamente anterior mostra se a economia está acelerando ou perdendo força.`
+              ]
+            },
+            {
+              id: `concretude-humanizacao`,
+              code: `07.3`,
+              pillar: `07`,
+              sourceKey: `modulos`,
+              sourceLabel: `Módulo 1 · Distribuição da Riqueza`,
+              title: `Concretude em reais, humanização e gráficos úteis`,
+              shortTitle: `Valores concretos & humanização`,
+              metric: `R$ 4 → R$ 5 (+R$ 1)`,
+              summary: `Pessoas entendem impactos concretos no bolso e narrativas com personagens reais muito melhor do que percentuais abstratos ou gráficos decorativos.`,
+              details: [
+                `Prefira valores concretos: dizer que o quilo do feijão subiu de R$ 4 para R$ 5 (aumento de R$ 1) comunica melhor do que "subiu 25%".`,
+                `Humanize as pautas: conte histórias reais, dê nomes às pessoas afetadas pelo desemprego, pela remarcação de preços ou pelo Bolsa Família.`,
+                `Gráficos e tabelas só fazem sentido quando tornam a explicação mais clara — nunca como enfeite.`
+              ]
+            },
+            {
+              id: `fontes-oficiais`,
+              code: `07.4`,
+              pillar: `07`,
+              sourceKey: `modulos`,
+              sourceLabel: `Módulos 1 & Entrevista Alessandra Ribeiro`,
+              title: `Mapa de fontes primárias: IBGE, Banco Mundial e FGV`,
+              shortTitle: `Fontes primárias: IBGE & Banco Mundial`,
+              metric: `PNAD · IPCA · Contas Nacionais`,
+              summary: `Saber onde buscar os dados originais garante independência editorial e apuração embasada em evidências.`,
+              details: [
+                `IBGE (ibge.gov.br → Estatísticas Econômicas): Contas Nacionais Trimestrais (PIB), Preços e Custos (IPCA detalhado) e PNAD Contínua (emprego, informalidade, renda e Índice de Gini).`,
+                `Banco Mundial (World Bank Brasil / imprensa): comparações internacionais, Índice de Capital Humano (ICH), relatórios de Pobreza e Desigualdade e transição da IA.`,
+                `Centros de pesquisa e consultorias: FGV IBRE / FGV Social (série fiscal histórica, pesquisas sobre Bolsa Família) e projeções da Pesquisa Focus do Banco Central.`
+              ]
+            }
+          ]
+        }
+      ]
+    };
+
+    // Cross-links connecting concepts across different branches & sources
+    const CROSS_LINKS = [
+      {
+        source: `renda-media-protecao`,
+        target: `entrincheiramento`,
+        label: `Mesma raiz: fechamento comercial contínuo`
+      },
+      {
+        source: `renda-media-petroleo`,
+        target: `crescimento-quebras`,
+        label: `Estopim da quebra estrutural de 1980`
+      },
+      {
+        source: `malan-longo-prazo`,
+        target: `fiscal-diagnostico`,
+        label: `Rigidez orçamentária e risco da dívida`
+      },
+      {
+        source: `franco-autonomia`,
+        target: `tripe-pilares`,
+        label: `Autonomia monetária dentro do tripé`
+      },
+      {
+        source: `pib-coreia`,
+        target: `abismo-salarial`,
+        label: `Educação como divisor de produtividade`
+      },
+      {
+        source: `ich-informalidade`,
+        target: `agenda-futuro`,
+        label: `Qualificação de mão de obra como agenda central`
+      },
+      {
+        source: `focus-meta3`,
+        target: `precisao-conceitos`,
+        label: `Explicar metas e p.p. sem distorções`
+      },
+      {
+        source: `gini-retrato`,
+        target: `fontes-oficiais`,
+        label: `Dados extraídos da PNAD Contínua (IBGE)`
+      }
+    ];
+
+    // Application State
+    const appState = {
+      selectedId: `root`,
+      searchQuery: ``,
+      sourceFilter: `all`,
+      pillarFilter: `all`,
+      showCrossLinks: true,
+      layoutMode: `bilateral`, // 'bilateral' | 'horizontal'
+      collapsedIds: new Set([`eixo-03`, `eixo-04`, `eixo-05`, `eixo-07`]), // Show 3 rich branches expanded initially + all 7 pillars
+      dragOffsets: new Map(),
+      matchingIds: [],
+      matchCursor: 0,
+      expandedAccordions: new Set([`eixo-01`, `eixo-02`]),
+      zoomTransform: d3.zoomIdentity,
+      visibleNodePositions: new Map()
+    };
+
+    // Build flat lookup map for nodes & parents
+    const nodeById = new Map();
+    const parentById = new Map();
+
+    function indexTree(node, parent) {
+      nodeById.set(node.id, node);
+      if (parent) parentById.set(node.id, parent);
+      if (node.children) {
+        node.children.forEach((child) => indexTree(child, node));
+      }
+    }
+    indexTree(MIND_MAP_DATA, null);
+
+    // SVG & D3 Setup
+    const svg = d3.select(`#mindmap-svg`);
+    const zoomGroup = svg.append(`g`).attr(`class`, `zoom-layer`);
+    const crossLinksLayer = zoomGroup.append(`g`).attr(`class`, `cross-links-layer`);
+    const linksLayer = zoomGroup.append(`g`).attr(`class`, `links-layer`);
+    const nodesLayer = zoomGroup.append(`g`).attr(`class`, `nodes-layer`);
+
+    const zoomBehavior = d3.zoom()
+      .scaleExtent([0.28, 2.2])
+      .on(`zoom`, (event) => {
+        appState.zoomTransform = event.transform;
+        zoomGroup.attr(`transform`, event.transform);
+        const readout = document.getElementById(`zoom-readout`);
+        if (readout) readout.textContent = `${Math.round(event.transform.k * 100)}%`;
+      });
+
+    svg.call(zoomBehavior).on(`dblclick.zoom`, null);
+
+    // Helper: wrap text into lines for SVG cards
+    function wrapTextLines(text, maxCharsPerLine, maxLines) {
+      const words = text.split(/\s+/);
+      const lines = [];
+      let current = ``;
+      for (let i = 0; i < words.length; i++) {
+        const w = words[i];
+        const next = current ? `${current} ${w}` : w;
+        if (next.length <= maxCharsPerLine) {
+          current = next;
+        } else {
+          if (current) lines.push(current);
+          current = w;
+          if (lines.length === maxLines - 1) {
+            // Remaining words truncated gracefully on last line
+            const rest = words.slice(i).join(` `);
+            if (rest.length > maxCharsPerLine) {
+              lines.push(rest.slice(0, maxCharsPerLine - 1) + `…`);
+            } else {
+              lines.push(rest);
+            }
+            current = ``;
+            break;
+          }
+        }
+      }
+      if (current && lines.length < maxLines) {
+        lines.push(current);
+      }
+      return lines;
+    }
+
+    // Node card dimensions by depth
+    function getCardSize(depth) {
+      if (depth === 0) return { w: 256, h: 86 };
+      if (depth === 1) return { w: 236, h: 72 };
+      return { w: 222, h: 60 };
+    }
+
+    // Check if a node matches current search & filter criteria
+    function nodeMatchesSearch(node, q) {
+      if (!q) return true;
+      const haystack = [
+        node.title,
+        node.shortTitle,
+        node.summary,
+        node.metric || ``,
+        node.sourceLabel || ``,
+        node.quote || ``,
+        node.quoteAuthor || ``,
+        ...(node.details || [])
+      ].join(` `).toLowerCase();
+      return haystack.includes(q);
+    }
+
+    function nodeMatchesFilters(node) {
+      const q = appState.searchQuery.trim().toLowerCase();
+      const matchesSearch = nodeMatchesSearch(node, q);
+      const matchesSource = appState.sourceFilter === `all` || node.sourceKey === `all` || node.sourceKey === appState.sourceFilter;
+      const matchesPillar = appState.pillarFilter === `all` || node.pillar === `00` || node.pillar === appState.pillarFilter;
+      return matchesSearch && matchesSource && matchesPillar;
+    }
+
+    function isDimmed(node) {
+      if (node.id === `root`) return false;
+      const hasQuery = appState.searchQuery.trim().length > 0;
+      const hasSource = appState.sourceFilter !== `all`;
+      const hasPillar = appState.pillarFilter !== `all`;
+      if (!hasQuery && !hasSource && !hasPillar) return false;
+      return !nodeMatchesFilters(node);
+    }
+
+    // Ensure matching nodes' ancestors are expanded during search
+    function expandAncestorsForMatches() {
+      const q = appState.searchQuery.trim().toLowerCase();
+      const hasSource = appState.sourceFilter !== `all`;
+      const hasPillar = appState.pillarFilter !== `all`;
+      const matched = [];
+
+      nodeById.forEach((node) => {
+        if (node.id === `root`) return;
+        const ok = nodeMatchesFilters(node);
+        if (ok && (q || hasSource || hasPillar)) {
+          matched.push(node.id);
+          let curr = parentById.get(node.id);
+          while (curr) {
+            appState.collapsedIds.delete(curr.id);
+            curr = parentById.get(curr.id);
+          }
+        }
+      });
+      appState.matchingIds = matched;
+      if (appState.matchCursor >= matched.length) appState.matchCursor = 0;
+    }
+
+    // Build visible hierarchy respecting collapsedIds
+    function buildVisibleClone(node) {
+      const clone = Object.assign({}, node);
+      if (node.children && node.children.length > 0 && !appState.collapsedIds.has(node.id)) {
+        clone.children = node.children.map(buildVisibleClone);
+      } else {
+        clone.children = null;
+      }
+      return clone;
+    }
+
+    // Compute tree layout (Bilateral or Horizontal)
+    function computeMindMapLayout() {
+      const nodes = [];
+      const links = [];
+      const nodeSpacingY = 82;
+      const levelSpacingX = 296;
+
+      if (appState.layoutMode === `horizontal`) {
+        const root = d3.hierarchy(buildVisibleClone(MIND_MAP_DATA));
+        const treeLayout = d3.tree().nodeSize([nodeSpacingY, levelSpacingX]);
+        treeLayout(root);
+        root.each((d) => {
+          const offset = appState.dragOffsets.get(d.data.id) || { dx: 0, dy: 0 };
+          nodes.push({
+            id: d.data.id,
+            data: d.data,
+            depth: d.depth,
+            side: d.depth === 0 ? `center` : `right`,
+            x: d.y + offset.dx,
+            y: d.x + offset.dy,
+            hasHiddenChildren: Boolean(nodeById.get(d.data.id).children && nodeById.get(d.data.id).children.length > 0 && appState.collapsedIds.has(d.data.id)),
+            totalChildren: (nodeById.get(d.data.id).children || []).length
+          });
+        });
+        root.links().forEach((lk) => {
+          links.push({
+            id: `${lk.source.data.id}__${lk.target.data.id}`,
+            sourceId: lk.source.data.id,
+            targetId: lk.target.data.id,
+            pillar: lk.target.data.pillar
+          });
+        });
+      } else {
+        // Bilateral layout: split right and left branches around root at (0, 0)
+        const rightChildren = MIND_MAP_DATA.children.filter((c) => c.side === `right`).map(buildVisibleClone);
+        const leftChildren = MIND_MAP_DATA.children.filter((c) => c.side === `left`).map(buildVisibleClone);
+
+        const rightVirtualRoot = d3.hierarchy({ ...MIND_MAP_DATA, children: rightChildren });
+        const leftVirtualRoot = d3.hierarchy({ ...MIND_MAP_DATA, children: leftChildren });
+
+        const treeLayout = d3.tree().nodeSize([nodeSpacingY, levelSpacingX]);
+        treeLayout(rightVirtualRoot);
+        treeLayout(leftVirtualRoot);
+
+        const rootOffset = appState.dragOffsets.get(`root`) || { dx: 0, dy: 0 };
+        nodes.push({
+          id: `root`,
+          data: MIND_MAP_DATA,
+          depth: 0,
+          side: `center`,
+          x: 0 + rootOffset.dx,
+          y: 0 + rootOffset.dy,
+          hasHiddenChildren: false,
+          totalChildren: MIND_MAP_DATA.children.length
+        });
+
+        rightVirtualRoot.descendants().forEach((d) => {
+          if (d.depth === 0) return;
+          const offset = appState.dragOffsets.get(d.data.id) || { dx: 0, dy: 0 };
+          nodes.push({
+            id: d.data.id,
+            data: d.data,
+            depth: d.depth,
+            side: `right`,
+            x: d.y + offset.dx,
+            y: d.x + offset.dy,
+            hasHiddenChildren: Boolean(nodeById.get(d.data.id).children && nodeById.get(d.data.id).children.length > 0 && appState.collapsedIds.has(d.data.id)),
+            totalChildren: (nodeById.get(d.data.id).children || []).length
+          });
+        });
+
+        leftVirtualRoot.descendants().forEach((d) => {
+          if (d.depth === 0) return;
+          const offset = appState.dragOffsets.get(d.data.id) || { dx: 0, dy: 0 };
+          nodes.push({
+            id: d.data.id,
+            data: d.data,
+            depth: d.depth,
+            side: `left`,
+            x: -d.y + offset.dx,
+            y: d.x + offset.dy,
+            hasHiddenChildren: Boolean(nodeById.get(d.data.id).children && nodeById.get(d.data.id).children.length > 0 && appState.collapsedIds.has(d.data.id)),
+            totalChildren: (nodeById.get(d.data.id).children || []).length
+          });
+        });
+
+        rightVirtualRoot.links().forEach((lk) => {
+          links.push({
+            id: `${lk.source.data.id}__${lk.target.data.id}`,
+            sourceId: lk.source.data.id,
+            targetId: lk.target.data.id,
+            pillar: lk.target.data.pillar
+          });
+        });
+        leftVirtualRoot.links().forEach((lk) => {
+          links.push({
+            id: `${lk.source.data.id}__${lk.target.data.id}`,
+            sourceId: lk.source.data.id,
+            targetId: lk.target.data.id,
+            pillar: lk.target.data.pillar
+          });
+        });
+      }
+
+      const posMap = new Map();
+      nodes.forEach((n) => posMap.set(n.id, n));
+      appState.visibleNodePositions = posMap;
+      return { nodes, links, posMap };
+    }
+
+    // Generate smooth cubic curve path between two positioned nodes
+    function buildLinkPath(sourceNode, targetNode) {
+      const sSize = getCardSize(sourceNode.depth);
+      const tSize = getCardSize(targetNode.depth);
+
+      const goingRight = targetNode.x >= sourceNode.x;
+      const sx = goingRight ? sourceNode.x + sSize.w / 2 : sourceNode.x - sSize.w / 2;
+      const sy = sourceNode.y;
+      const tx = goingRight ? targetNode.x - tSize.w / 2 : targetNode.x + tSize.w / 2;
+      const ty = targetNode.y;
+      const mx = (sx + tx) / 2;
+
+      return `M ${sx} ${sy} C ${mx} ${sy}, ${mx} ${ty}, ${tx} ${ty}`;
+    }
+
+    // Build cross-link curved arc between two visible nodes
+    function buildCrossLinkPath(sourceNode, targetNode) {
+      const sx = sourceNode.x;
+      const sy = sourceNode.y;
+      const tx = targetNode.x;
+      const ty = targetNode.y;
+      const dx = tx - sx;
+      const dy = ty - sy;
+      const dist = Math.hypot(dx, dy) || 1;
+      const bend = Math.min(110, dist * 0.28);
+      const cx = (sx + tx) / 2 - (dy / dist) * bend;
+      const cy = (sy + ty) / 2 + (dx / dist) * bend;
+      return `M ${sx} ${sy} Q ${cx} ${cy} ${tx} ${ty}`;
+    }
+
+    function updateLinksGeometry(posMap) {
+      linksLayer.selectAll(`path.tree-link`)
+        .attr(`d`, (d) => {
+          const s = posMap.get(d.sourceId);
+          const t = posMap.get(d.targetId);
+          if (!s || !t) return ``;
+          return buildLinkPath(s, t);
+        });
+
+      crossLinksLayer.selectAll(`path.cross-link`)
+        .attr(`d`, (d) => {
+          const s = posMap.get(d.source);
+          const t = posMap.get(d.target);
+          if (!s || !t) return ``;
+          return buildCrossLinkPath(s, t);
+        });
+    }
+
+    function renderMindMap(animate = true) {
+      const { nodes, links, posMap } = computeMindMapLayout();
+      const countEl = document.getElementById(`visible-nodes-count`);
+      if (countEl) {
+        countEl.textContent = `Exibindo ${nodes.length} de ${nodeById.size} nós`;
+      }
+
+      // 1. Hierarchical Links
+      const linkSel = linksLayer.selectAll(`path.tree-link`)
+        .data(links, (d) => d.id);
+
+      linkSel.exit().remove();
+
+      const linkEnter = linkSel.enter()
+        .append(`path`)
+        .attr(`class`, `tree-link`);
+
+      const linkMerge = linkEnter.merge(linkSel)
+        .attr(`stroke`, (d) => THEME.pillarBorders[d.pillar] || THEME.secondary)
+        .classed(`dimmed`, (d) => {
+          const t = posMap.get(d.targetId);
+          return t ? isDimmed(t.data) : false;
+        })
+        .classed(`highlighted`, (d) => d.targetId === appState.selectedId || d.sourceId === appState.selectedId);
+
+      if (animate) {
+        linkMerge.transition().duration(220)
+          .attr(`d`, (d) => {
+            const s = posMap.get(d.sourceId);
+            const t = posMap.get(d.targetId);
+            return s && t ? buildLinkPath(s, t) : ``;
+          });
+      } else {
+        linkMerge.attr(`d`, (d) => {
+          const s = posMap.get(d.sourceId);
+          const t = posMap.get(d.targetId);
+          return s && t ? buildLinkPath(s, t) : ``;
+        });
+      }
+
+      // 2. Cross-Links (only when enabled and both ends are visible)
+      const visibleCrossLinks = appState.showCrossLinks
+        ? CROSS_LINKS.filter((cl) => posMap.has(cl.source) && posMap.has(cl.target))
+        : [];
+
+      const crossSel = crossLinksLayer.selectAll(`path.cross-link`)
+        .data(visibleCrossLinks, (d) => `${d.source}__${d.target}`);
+
+      crossSel.exit().remove();
+
+      crossSel.enter()
+        .append(`path`)
+        .attr(`class`, `cross-link`)
+        .merge(crossSel)
+        .classed(`active`, (d) => d.source === appState.selectedId || d.target === appState.selectedId)
+        .classed(`dimmed`, (d) => {
+          const hasSelection = appState.selectedId && appState.selectedId !== `root`;
+          if (!hasSelection) return false;
+          return d.source !== appState.selectedId && d.target !== appState.selectedId;
+        })
+        .attr(`d`, (d) => buildCrossLinkPath(posMap.get(d.source), posMap.get(d.target)));
+
+      // 3. Nodes
+      const nodeSel = nodesLayer.selectAll(`g.node-group`)
+        .data(nodes, (d) => d.id);
+
+      nodeSel.exit().remove();
+
+      let dragMoved = false;
+      const dragBehavior = d3.drag()
+        .on(`start`, function (event, d) {
+          dragMoved = false;
+          d3.select(this).raise();
+        })
+        .on(`drag`, function (event, d) {
+          if (Math.abs(event.dx) > 0.5 || Math.abs(event.dy) > 0.5) {
+            dragMoved = true;
+          }
+          const currentOffset = appState.dragOffsets.get(d.id) || { dx: 0, dy: 0 };
+          const nextOffset = { dx: currentOffset.dx + event.dx, dy: currentOffset.dy + event.dy };
+          appState.dragOffsets.set(d.id, nextOffset);
+          d.x += event.dx;
+          d.y += event.dy;
+          d3.select(this).attr(`transform`, `translate(${d.x}, ${d.y})`);
+          updateLinksGeometry(posMap);
+        })
+        .on(`end`, function (event, d) {
+          if (!dragMoved) {
+            selectNode(d.id);
+          }
+        });
+
+      const nodeEnter = nodeSel.enter()
+        .append(`g`)
+        .attr(`class`, `node-group`)
+        .attr(`tabindex`, `0`)
+        .attr(`role`, `button`)
+        .attr(`transform`, (d) => `translate(${d.x}, ${d.y})`)
+        .call(dragBehavior)
+        .on(`keydown`, (event, d) => {
+          if (event.key === `Enter` || event.key === ` `) {
+            event.preventDefault();
+            selectNode(d.id);
+          }
+        });
+
+      // Build inner card markup on enter
+      nodeEnter.each(function (d) {
+        const g = d3.select(this);
+        const size = getCardSize(d.depth);
+        const isRoot = d.depth === 0;
+        const accentColor = isRoot ? THEME.gold : (THEME.pillars[d.data.pillar] || THEME.secondary);
+        const borderColor = isRoot ? THEME.primary : (THEME.pillarBorders[d.data.pillar] || THEME.border);
+
+        g.append(`rect`)
+          .attr(`class`, `node-card-bg`)
+          .attr(`x`, -size.w / 2)
+          .attr(`y`, -size.h / 2)
+          .attr(`width`, size.w)
+          .attr(`height`, size.h)
+          .attr(`rx`, 6)
+          .attr(`fill`, isRoot ? THEME.primary : THEME.card)
+          .attr(`stroke`, borderColor)
+          .attr(`stroke-width`, isRoot ? 2 : 1.25);
+
+        // Left accent stripe
+        g.append(`rect`)
+          .attr(`x`, -size.w / 2)
+          .attr(`y`, -size.h / 2)
+          .attr(`width`, 5)
+          .attr(`height`, size.h)
+          .attr(`rx`, 2)
+          .attr(`fill`, accentColor);
+
+        // Top meta label (code + metric)
+        g.append(`text`)
+          .attr(`class`, `node-meta-text`)
+          .attr(`x`, -size.w / 2 + 14)
+          .attr(`y`, -size.h / 2 + 18)
+          .attr(`font-family`, `Geist Mono, monospace`)
+          .attr(`font-size`, `10.5px`)
+          .attr(`font-weight`, `600`)
+          .attr(`fill`, isRoot ? THEME.gold : accentColor)
+          .text(`${d.data.code} · ${d.data.metric || ''}`);
+
+        // Wrapped Title
+        const maxChars = isRoot ? 28 : (d.depth === 1 ? 27 : 26);
+        const lines = wrapTextLines(d.data.shortTitle || d.data.title, maxChars, 2);
+        const titleText = g.append(`text`)
+          .attr(`x`, -size.w / 2 + 14)
+          .attr(`y`, -size.h / 2 + 37)
+          .attr(`font-family`, d.depth <= 1 ? `Source Serif 4, serif` : `Plus Jakarta Sans, sans-serif`)
+          .attr(`font-size`, isRoot ? `14.5px` : (d.depth === 1 ? `13.5px` : `12.5px`))
+          .attr(`font-weight`, `700`)
+          .attr(`fill`, isRoot ? THEME.onPrimary : THEME.ink);
+
+        lines.forEach((line, idx) => {
+          titleText.append(`tspan`)
+            .attr(`x`, -size.w / 2 + 14)
+            .attr(`dy`, idx === 0 ? 0 : 16)
+            .text(line);
+        });
+
+        // Expand/Collapse toggle button on outer side if node has children
+        const rawNode = nodeById.get(d.id);
+        if (rawNode && rawNode.children && rawNode.children.length > 0 && d.depth > 0) {
+          const toggleG = g.append(`g`)
+            .attr(`class`, `node-toggle-btn`)
+            .attr(`transform`, `translate(${d.side === 'left' ? -size.w / 2 : size.w / 2}, 0)`)
+            .on(`mousedown`, (event) => {
+              event.stopPropagation();
+            })
+            .on(`click`, (event) => {
+              event.stopPropagation();
+              toggleBranch(d.id);
+            });
+
+          toggleG.append(`circle`)
+            .attr(`r`, 12)
+            .attr(`fill`, THEME.card)
+            .attr(`stroke`, borderColor)
+            .attr(`stroke-width`, 1.5);
+
+          toggleG.append(`text`)
+            .attr(`class`, `toggle-symbol`)
+            .attr(`text-anchor`, `middle`)
+            .attr(`dominant-baseline`, `central`)
+            .attr(`font-family`, `Geist Mono, monospace`)
+            .attr(`font-size`, `13px`)
+            .attr(`font-weight`, `700`)
+            .attr(`fill`, THEME.ink)
+            .text(appState.collapsedIds.has(d.id) ? `+` : `−`);
+        }
+      });
+
+      const nodeMerge = nodeEnter.merge(nodeSel);
+
+      nodeMerge.attr(`aria-label`, (d) => `${d.data.code} ${d.data.title}`)
+        .classed(`dimmed`, (d) => isDimmed(d.data));
+
+      // Update toggle circle position (when switching Bilateral <-> Horizontal) and symbol
+      nodeMerge.each(function (d) {
+        const g = d3.select(this);
+        const size = getCardSize(d.depth);
+        const isRoot = d.depth === 0;
+        const isSelected = d.id === appState.selectedId;
+        const isSearchMatch = appState.searchQuery.trim().length > 0 && nodeMatchesFilters(d.data);
+        const borderColor = isRoot ? THEME.primary : (THEME.pillarBorders[d.data.pillar] || THEME.border);
+
+        g.select(`rect.node-card-bg`)
+          .attr(`stroke`, isSelected ? THEME.gold : (isSearchMatch ? THEME.gold : borderColor))
+          .attr(`stroke-width`, isSelected ? 3.2 : (isSearchMatch ? 2.5 : (isRoot ? 2 : 1.25)));
+
+        const toggleBtn = g.select(`g.node-toggle-btn`);
+        if (!toggleBtn.empty()) {
+          toggleBtn.attr(`transform`, `translate(${d.side === 'left' ? -size.w / 2 : size.w / 2}, 0)`);
+          toggleBtn.select(`text.toggle-symbol`)
+            .text(appState.collapsedIds.has(d.id) ? `+` : `−`);
+        }
+      });
+
+      if (animate) {
+        nodeMerge.transition().duration(220)
+          .attr(`transform`, (d) => `translate(${d.x}, ${d.y})`);
+      } else {
+        nodeMerge.attr(`transform`, (d) => `translate(${d.x}, ${d.y})`);
+      }
+    }
+
+    // Center camera nicely on all visible nodes
+    function fitMindMap() {
+      const container = document.getElementById(`mindmap-container`);
+      if (!container || appState.visibleNodePositions.size === 0) return;
+
+      const cw = container.clientWidth || 800;
+      const ch = container.clientHeight || 620;
+
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      appState.visibleNodePositions.forEach((n) => {
+        const sz = getCardSize(n.depth);
+        minX = Math.min(minX, n.x - sz.w / 2 - 24);
+        maxX = Math.max(maxX, n.x + sz.w / 2 + 24);
+        minY = Math.min(minY, n.y - sz.h / 2 - 24);
+        maxY = Math.max(maxY, n.y + sz.h / 2 + 24);
+      });
+
+      const bw = maxX - minX;
+      const bh = maxY - minY;
+      const scale = Math.max(0.32, Math.min(1.05, Math.min((cw - 48) / bw, (ch - 48) / bh)));
+      const tx = cw / 2 - scale * ((minX + maxX) / 2);
+      const ty = ch / 2 - scale * ((minY + maxY) / 2);
+
+      svg.transition().duration(320)
+        .call(zoomBehavior.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
+    }
+
+    function zoomBy(factor) {
+      svg.transition().duration(200).call(zoomBehavior.scaleBy, factor);
+    }
+
+    function centerOnNode(nodeId) {
+      const container = document.getElementById(`mindmap-container`);
+      const pos = appState.visibleNodePositions.get(nodeId);
+      if (!container || !pos) return;
+      const cw = container.clientWidth || 800;
+      const ch = container.clientHeight || 620;
+      const k = Math.max(0.85, Math.min(1.15, appState.zoomTransform.k || 0.95));
+      const tx = cw / 2 - k * pos.x;
+      const ty = ch / 2 - k * pos.y;
+      svg.transition().duration(320)
+        .call(zoomBehavior.transform, d3.zoomIdentity.translate(tx, ty).scale(k));
+    }
+
+    // Select node and update Inspector
+    function selectNode(nodeId, shouldCenter = false) {
+      if (!nodeById.has(nodeId)) return;
+      appState.selectedId = nodeId;
+
+      // Expand ancestors so node is always visible
+      let curr = parentById.get(nodeId);
+      let expandedAny = false;
+      while (curr) {
+        if (appState.collapsedIds.has(curr.id)) {
+          appState.collapsedIds.delete(curr.id);
+          expandedAny = true;
+        }
+        curr = parentById.get(curr.id);
+      }
+
+      renderMindMap(expandedAny);
+      renderInspector();
+      if (shouldCenter) {
+        setTimeout(() => centerOnNode(nodeId), expandedAny ? 240 : 20);
+      }
+    }
+
+    function focusNodeFromUI(nodeId) {
+      selectNode(nodeId, true);
+      const mapEl = document.getElementById(`mindmap-container`);
+      if (mapEl) mapEl.scrollIntoView({ behavior: `smooth`, block: `center` });
+    }
+
+    function toggleBranch(nodeId) {
+      if (appState.collapsedIds.has(nodeId)) {
+        appState.collapsedIds.delete(nodeId);
+      } else {
+        appState.collapsedIds.add(nodeId);
+      }
+      renderMindMap(true);
+      renderInspector();
+    }
+
+    function expandAllNodes() {
+      appState.collapsedIds.clear();
+      renderMindMap(true);
+      renderInspector();
+      setTimeout(fitMindMap, 250);
+    }
+
+    function collapseAllNodes() {
+      MIND_MAP_DATA.children.forEach((child) => appState.collapsedIds.add(child.id));
+      if (appState.selectedId !== `root` && parentById.get(appState.selectedId) !== MIND_MAP_DATA) {
+        const topAncestor = parentById.get(appState.selectedId);
+        if (topAncestor) appState.selectedId = topAncestor.id;
+      }
+      renderMindMap(true);
+      renderInspector();
+      setTimeout(fitMindMap, 250);
+    }
+
+    function toggleCrossLinks() {
+      appState.showCrossLinks = !appState.showCrossLinks;
+      const btn = document.getElementById(`btn-cross-links`);
+      if (btn) {
+        btn.setAttribute(`aria-pressed`, String(appState.showCrossLinks));
+        btn.classList.toggle(`btn-active`, appState.showCrossLinks);
+      }
+      renderMindMap(false);
+    }
+
+    function toggleLayoutMode() {
+      appState.layoutMode = appState.layoutMode === `bilateral` ? `horizontal` : `bilateral`;
+      const btn = document.getElementById(`btn-layout-mode`);
+      if (btn) {
+        btn.innerHTML = `<i data-lucide="network" width="16" height="16" aria-hidden="true"></i> Layout: ${appState.layoutMode === `bilateral` ? `Bilateral` : `Árvore`}`;
+        if (window.lucide) lucide.createIcons();
+      }
+      renderMindMap(true);
+      setTimeout(fitMindMap, 250);
+    }
+
+    function resetDraggedPositions() {
+      appState.dragOffsets.clear();
+      renderMindMap(true);
+      setTimeout(fitMindMap, 250);
+    }
+
+    // Search & Filters
+    function handleSearchInput(val) {
+      appState.searchQuery = val || ``;
+      expandAncestorsForMatches();
+      updateSearchStatus();
+      renderMindMap(true);
+      renderCardsGrid();
+      if (appState.matchingIds.length > 0 && appState.searchQuery.trim().length >= 2) {
+        selectNode(appState.matchingIds[0], true);
+      }
+    }
+
+    function stepSearchMatch(delta) {
+      if (appState.matchingIds.length === 0) return;
+      appState.matchCursor = (appState.matchCursor + delta + appState.matchingIds.length) % appState.matchingIds.length;
+      const targetId = appState.matchingIds[appState.matchCursor];
+      updateSearchStatus();
+      selectNode(targetId, true);
+    }
+
+    function updateSearchStatus() {
+      const box = document.getElementById(`search-status`);
+      const text = document.getElementById(`search-status-text`);
+      if (!box || !text) return;
+
+      const hasQuery = appState.searchQuery.trim().length > 0;
+      const hasSource = appState.sourceFilter !== `all`;
+      const hasPillar = appState.pillarFilter !== `all`;
+
+      if (!hasQuery && !hasSource && !hasPillar) {
+        box.hidden = true;
+        return;
+      }
+      box.hidden = false;
+      const n = appState.matchingIds.length;
+      if (n === 0) {
+        text.textContent = `Nenhum nó encontrado para os critérios atuais.`;
+      } else {
+        text.textContent = `${n} nó(s) correspondente(s) · Foco ${appState.matchCursor + 1} de ${n}`;
+      }
+    }
+
+    function handleSourceFilter(val) {
+      appState.sourceFilter = val || `all`;
+      expandAncestorsForMatches();
+      updateSearchStatus();
+      renderMindMap(true);
+      renderCardsGrid();
+    }
+
+    function setPillarFilter(pillarCode) {
+      appState.pillarFilter = pillarCode;
+      renderPillarChips();
+      expandAncestorsForMatches();
+      updateSearchStatus();
+      if (pillarCode !== `all`) {
+        const target = MIND_MAP_DATA.children.find((c) => c.pillar === pillarCode);
+        if (target) {
+          appState.collapsedIds.delete(target.id);
+          selectNode(target.id, true);
+        }
+      } else {
+        renderMindMap(true);
+      }
+      renderCardsGrid();
+    }
+
+    function clearSearchAndFilters() {
+      appState.searchQuery = ``;
+      appState.sourceFilter = `all`;
+      appState.pillarFilter = `all`;
+      const sInput = document.getElementById(`search-input`);
+      const sSelect = document.getElementById(`source-filter`);
+      if (sInput) sInput.value = ``;
+      if (sSelect) sSelect.value = `all`;
+      appState.matchingIds = [];
+      appState.matchCursor = 0;
+      renderPillarChips();
+      updateSearchStatus();
+      renderMindMap(true);
+      renderCardsGrid();
+    }
+
+    // Render Pillar Filter Chips
+    function renderPillarChips() {
+      const wrap = document.getElementById(`pillar-chips`);
+      if (!wrap) return;
+      const items = [
+        { code: `all`, label: `Todos os 7 eixos`, swatch: THEME.primary },
+        { code: `01`, label: `01 Renda Média`, swatch: THEME.pillars[`01`] },
+        { code: `02`, label: `02 Inflação & Real`, swatch: THEME.pillarBorders[`02`] },
+        { code: `03`, label: `03 PIB & Coreia`, swatch: THEME.pillars[`03`] },
+        { code: `04`, label: `04 Desigualdade`, swatch: THEME.pillars[`04`] },
+        { code: `05`, label: `05 Cadeias Globais`, swatch: THEME.pillars[`05`] },
+        { code: `06`, label: `06 Tripé & Fiscal`, swatch: THEME.pillars[`06`] },
+        { code: `07`, label: `07 Jornalismo`, swatch: THEME.pillars[`07`] }
+      ];
+      wrap.innerHTML = items.map((it) => `
+        <button type="button" class="pillar-chip" aria-pressed="${appState.pillarFilter === it.code}" onclick="setPillarFilter('${it.code}')">
+          <span class="chip-swatch" style="background-color: ${it.swatch};"></span>
+          ${it.label}
+        </button>
+      `).join(``);
+    }
+
+    // Render Inspector Panel for Selected Node
+    function renderInspector() {
+      const panel = document.getElementById(`inspector-panel`);
+      const node = nodeById.get(appState.selectedId);
+      if (!panel || !node) return;
+
+      const hasChildren = Boolean(node.children && node.children.length > 0);
+      const isCollapsed = appState.collapsedIds.has(node.id);
+      const parent = parentById.get(node.id);
+
+      // Cross links touching this node
+      const relatedLinks = CROSS_LINKS.filter((cl) => cl.source === node.id || cl.target === node.id);
+
+      const detailsHtml = (node.details || []).map((item) => `<li>${item}</li>`).join(``);
+      const quoteHtml = node.quote ? `
+        <div class="quote-box">
+          “${node.quote}”
+          <span class="quote-author">${node.quoteAuthor || ``}</span>
+        </div>
+      ` : ``;
+
+      const childrenHtml = hasChildren ? `
+        <div>
+          <h3 class="inspector-section-title">Subtópicos deste eixo (${node.children.length})</h3>
+          <div class="chip-links">
+            ${node.children.map((ch) => `
+              <button type="button" class="jump-chip" onclick="selectNode('${ch.id}', true)">
+                <span class="index-num">${ch.code}</span>
+                <span>${ch.shortTitle || ch.title}</span>
+              </button>
+            `).join(``)}
+          </div>
+        </div>
+      ` : ``;
+
+      const crossHtml = relatedLinks.length > 0 ? `
+        <div>
+          <h3 class="inspector-section-title">Conexões transversais entre fontes (${relatedLinks.length})</h3>
+          <div class="chip-links">
+            ${relatedLinks.map((cl) => {
+              const otherId = cl.source === node.id ? cl.target : cl.source;
+              const other = nodeById.get(otherId);
+              if (!other) return ``;
+              return `
+                <button type="button" class="jump-chip jump-chip-cross" onclick="selectNode('${other.id}', true)">
+                  <span>↔ ${other.code} ${other.shortTitle}</span>
+                  <span class="dossier-meta">(${cl.label})</span>
+                </button>
+              `;
+            }).join(``)}
+          </div>
+        </div>
+      ` : ``;
+
+      panel.innerHTML = `
+        <div class="inspector-meta-row">
+          <span class="dossier-pill">${node.code === `SÍNTESE` ? `NÚCLEO` : `EIXO ${node.code}`}</span>
+          <span class="source-tag">${node.sourceLabel}</span>
+        </div>
+
+        <div>
+          <h2 class="inspector-title">${node.title}</h2>
+          ${node.metric ? `<p class="inspector-subtitle">${node.metric}</p>` : ``}
+        </div>
+
+        <div class="inspector-actions">
+          <button type="button" class="btn btn-sm btn-primary" onclick="centerOnNode('${node.id}')">
+            Centralizar no mapa
+          </button>
+          ${hasChildren && node.id !== `root` ? `
+            <button type="button" class="btn btn-sm" onclick="toggleBranch('${node.id}')">
+              ${isCollapsed ? `Expandir subtópicos (${node.children.length})` : `Recolher subtópicos`}
+            </button>
+          ` : ``}
+          ${parent ? `
+            <button type="button" class="btn btn-sm" onclick="selectNode('${parent.id}', true)">
+              ↑ Voltar a ${parent.code}
+            </button>
+          ` : ``}
+        </div>
+
+        <p class="inspector-summary">${node.summary}</p>
+
+        <div>
+          <h3 class="inspector-section-title">Dados e evidências do caderno</h3>
+          <ul class="detail-list">${detailsHtml}</ul>
+        </div>
+
+        ${quoteHtml}
+        ${childrenHtml}
+        ${crossHtml}
+      `;
+    }
+
+    // Accordion Grid (Synchronized with Filters & Search)
+    function toggleAccordion(pillarId) {
+      if (appState.expandedAccordions.has(pillarId)) {
+        appState.expandedAccordions.delete(pillarId);
+      } else {
+        appState.expandedAccordions.add(pillarId);
+      }
+      renderCardsGrid();
+    }
+
+    function toggleAllAccordions(open) {
+      if (open) {
+        MIND_MAP_DATA.children.forEach((c) => appState.expandedAccordions.add(c.id));
+      } else {
+        appState.expandedAccordions.clear();
+      }
+      renderCardsGrid();
+    }
+
+    function renderCardsGrid() {
+      const grid = document.getElementById(`cards-grid`);
+      const emptyBox = document.getElementById(`cards-empty`);
+      if (!grid || !emptyBox) return;
+
+      const q = appState.searchQuery.trim().toLowerCase();
+      const hasFilters = q.length > 0 || appState.sourceFilter !== `all` || appState.pillarFilter !== `all`;
+
+      const visiblePillars = MIND_MAP_DATA.children.filter((pillar) => {
+        if (appState.pillarFilter !== `all` && pillar.pillar !== appState.pillarFilter) return false;
+        if (!hasFilters) return true;
+        if (nodeMatchesFilters(pillar)) return true;
+        return (pillar.children || []).some((ch) => nodeMatchesFilters(ch));
+      });
+
+      if (visiblePillars.length === 0) {
+        grid.innerHTML = ``;
+        emptyBox.hidden = false;
+        return;
+      }
+
+      emptyBox.hidden = true;
+      grid.innerHTML = visiblePillars.map((pillar) => {
+        const isOpen = hasFilters || appState.expandedAccordions.has(pillar.id);
+        const matchingChildren = (pillar.children || []).filter((ch) => !hasFilters || nodeMatchesFilters(ch) || nodeMatchesFilters(pillar));
+        const swatch = THEME.pillars[pillar.pillar] || THEME.secondary;
+
+        return `
+          <article class="pillar-accordion" style="border-top: 3px solid ${swatch};">
+            <button type="button" class="accordion-trigger" aria-expanded="${isOpen}" onclick="toggleAccordion('${pillar.id}')">
+              <div class="accordion-title-wrap">
+                <span class="accordion-meta">${pillar.code} · ${pillar.sourceLabel} · ${pillar.metric}</span>
+                <h3 class="accordion-title">${pillar.title}</h3>
+              </div>
+              <span class="index-num">${isOpen ? `− Recolher` : `+ Expandir`}</span>
+            </button>
+
+            <div class="accordion-body" ${isOpen ? `` : `hidden`}>
+              <p class="inspector-summary">${pillar.summary}</p>
+              <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-primary" onclick="focusNodeFromUI('${pillar.id}')">
+                  Ver eixo no mapa mental
+                </button>
+              </div>
+              ${matchingChildren.map((ch) => `
+                <div class="subnode-card">
+                  <div class="subnode-header">
+                    <h4 class="subnode-title">${ch.code} · ${ch.title}</h4>
+                    <button type="button" class="jump-chip" onclick="focusNodeFromUI('${ch.id}')">Focar no mapa</button>
+                  </div>
+                  <p class="subnode-summary">${ch.summary}</p>
+                  <ul class="detail-list">
+                    ${(ch.details || []).map((d) => `<li>${d}</li>`).join(``)}
+                  </ul>
+                </div>
+              `).join(``)}
+            </div>
+          </article>
+        `;
+      }).join(``);
+    }
+
+    // Initialize Application
+    function initApp() {
+      renderPillarChips();
+      renderMindMap(false);
+      renderInspector();
+      renderCardsGrid();
+      setTimeout(fitMindMap, 60);
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+      window.addEventListener(`resize`, () => {
+        fitMindMap();
+      });
+    }
+
+    if (document.readyState === `loading`) {
+      document.addEventListener(`DOMContentLoaded`, initApp);
+    } else {
+      initApp();
+    }
+  </script>
+</body>
+</html>
